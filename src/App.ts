@@ -28,7 +28,7 @@ export class App {
     this.connection = new Connection(this.config);
   }
 
-  static bootstrap(config?: IAppConfig, controllers?: Controller[]) {
+  static bootstrap(config?: IAppConfig, controllers?: Controller[]): App {
     return new App(
       express(),
       config,
@@ -39,7 +39,7 @@ export class App {
   /**
    * Add a set of global middlewares
    */
-  public withMiddleware(middleware: IMiddlewareFunc[]) {
+  public withMiddleware(middleware: IMiddlewareFunc[]): App {
     this.middleware.push(...middleware);
     return this;
   }
@@ -47,7 +47,7 @@ export class App {
   /**
    * Add a set of controllers
    */
-  public withControllers(controllers: Controller[]) {
+  public withControllers(controllers: Controller[]): App {
     this.controllers.push(...controllers);
     return this;
   }
@@ -55,8 +55,9 @@ export class App {
   /**
    * Override the default exception handler with one of your own
    */
-  public withExceptionHandler(handler: ExceptionHandler) {
+  public withExceptionHandler(handler: ExceptionHandler): App {
     this.exceptionHandler = handler;
+    return this;
   }
 
   /**
@@ -95,7 +96,7 @@ export class App {
    * Iterate through each of the registered controllers and register
    * the methods that the controllers expose with the express server
    */
-  private registerControllers() {
+  private registerControllers(): void {
     this.controllers.forEach((controller) => {
       const routes = Reflect.getMetadata(ROUTES_METADATA, controller);
       for (let method in routes) {
@@ -138,7 +139,7 @@ export class App {
    * Constructs a full path to a specific route based on 
    * global prefix, controller prefix and route path
    */
-  private constructPath(path: string, controllerBase: string) {
+  private constructPath(path: string, controllerBase: string): string {
     const replaceSlashes = (str: string): string => str.replace(/^\/?/, '').replace(/\/?$/, '');
     return '/' + [
       replaceSlashes(this.config.basePath),
@@ -156,6 +157,8 @@ export class App {
     return {
       path: req.path,
       method: req.method,
+      params: req.params,
+      body: req.body,
       req,
       res
     };
