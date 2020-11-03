@@ -1,0 +1,6 @@
+{
+  "watch": ["./**/*", "../dist/**/*"],
+  "ext": "ts,json,js",
+  "exec": "ts-node ./index.ts",
+  "delay": 1000
+}

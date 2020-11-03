@@ -1,0 +1,8 @@
+# node
+node_modules
+
+#built files
+dist
+tmp
+
+.DS_Store
