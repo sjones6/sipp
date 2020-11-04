@@ -4,7 +4,7 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "example": "cd example && nodemon",
+    "example": "cd example && npx nodemon",
     "dev": "tsc --watch",
     "build": "tsc"
   },

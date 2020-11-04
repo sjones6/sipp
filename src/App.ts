@@ -4,7 +4,8 @@ import { METHOD_METADATA, PATH_METADATA, ROUTES_METADATA, MIDDLEWARE_METADATA, C
 import { Controller } from "./Controller";
 import { Connection } from "./db/Connection";
 import { BaseException, ExceptionHandler, NotFoundException } from "./exceptions";
-import { NoResponseException } from "./exceptions";
+import { InvalidControllerReponse } from "./exceptions/RuntimeException";
+import { HTTPResponse } from "./http";
 import { IAppConfig, IMiddlewareFunc, IRequestContext } from './interfaces';
 
 const defaultConfig = {
@@ -12,10 +13,15 @@ const defaultConfig = {
   port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
 }
 
+const CTX_SYMBOL = Symbol('ctx');
+
 export class App {
   private app: express.Application
   private controllers: Controller[] = []
-  private middleware: IMiddlewareFunc[] = []
+  private middleware: IMiddlewareFunc[] = [
+    express.json(),
+    express.urlencoded({ extended: true })
+  ]
   private exceptionHandler: ExceptionHandler
   private connection: Connection
   private config: IAppConfig
@@ -113,21 +119,17 @@ export class App {
             this.app,
             [
               this.constructPath(pathMetadata, controller.getBasePath()),
-              ...(controllerMiddleware || []), // controller middleware 
-              ...(methodMiddleware || []), // method handler middleware
-              async (req: Request, res: Response, next: NextFunction) => {
-                try {
-                  await controller[method](this.createRequestContext(req, res));
-                  if (!res.headersSent) {
-                    throw new NoResponseException('no content');
-                  }
-                } catch (err) {
-                  const exception = BaseException.toException(err);
-                  if (!controller.onException(exception, res) || !this.onException(exception, req, res, next)) {
-                    next(err);
-                  }
-                }
-              },
+              ...[
+                ...(controllerMiddleware || []), // controller middleware 
+                ...(methodMiddleware || []), // method handler middleware
+                async (req: Request, res: Response) => {
+                  const ctx = this.createRequestContext(req, res);
+                  const controllerReponse = await controller[method](ctx);
+                  this.handleControllerResponse(controllerReponse, ctx);
+                },
+              ]
+              .filter(Boolean)
+              .map((fn) => this.wrapMiddlewareAndHandleErr(fn, controller))
             ].filter(Boolean)
           );
         }
@@ -154,14 +156,17 @@ export class App {
    * Create a full-request context for a state-less request
    */
   private createRequestContext(req: Request, res: Response): IRequestContext {
-    return {
-      path: req.path,
-      method: req.method,
-      params: req.params,
-      body: req.body,
-      req,
-      res
-    };
+    if (!req[CTX_SYMBOL]) {
+      req[CTX_SYMBOL] = {
+        path: req.path,
+        method: req.method,
+        params: req.params,
+        body: req.body,
+        req,
+        res
+      };
+    }
+    return req[CTX_SYMBOL];
   }
 
   /**
@@ -174,5 +179,50 @@ export class App {
       return false
     }
     return true;
+  }
+
+  private wrapMiddlewareAndHandleErr(middleware, controller: Controller) {
+    return ((req, res, next) => {
+      Promise.resolve(
+        new Promise(async (resolve, reject) => {
+          const middlewareRes = middleware(req, res, err => {
+            err ? resolve() : reject(err);
+          });
+          if (middlewareRes instanceof Promise) {
+            middlewareRes.then(resolve).catch(reject);
+          }
+        })
+      )
+        .then(() => {
+          if (!req.headersSent) {
+            next();
+          }
+        })
+        .catch((err) => {
+          const controllerReponse = controller.onException(BaseException.toException(err), req[CTX_SYMBOL]);
+          if (typeof controllerReponse === 'boolean' && !controllerReponse) {
+            // the controller didn't handle the error so throw down the error chain
+            next(err);
+          }
+          try {
+
+            // controller returned a _non_ boolean response which is expected to be a HttpResponse factory
+            this.handleControllerResponse(controllerReponse, req[CTX_SYMBOL]);
+          } catch (err) {
+            next(err);
+          }
+        });
+    })
+  }
+
+  private handleControllerResponse(controllerReponse, ctx: IRequestContext): void {
+    const reply: HTTPResponse = typeof controllerReponse === 'function'
+      ? controllerReponse(ctx)
+      : new HTTPResponse(ctx, controllerReponse);
+    if (reply instanceof HTTPResponse) {
+      reply.handle();
+    } else {
+      throw new InvalidControllerReponse(`controller reponse ${typeof reply} invalid`);
+    }
   }
 }

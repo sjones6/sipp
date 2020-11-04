@@ -7,3 +7,5 @@ export * from './decorators';
 export * from './exceptions';
 export * from './interfaces';
 export * from './jsx';
+export * from './facades';
+export * from './http';

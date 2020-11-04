@@ -1,5 +1,6 @@
 import { Response } from 'express'
 import { BaseException } from './exceptions';
+import { IHTTPResponseFacade, IRequestContext } from './interfaces';
 
 export class Controller {
 
@@ -20,11 +21,8 @@ export class Controller {
 
   /**
    * a generic exception handle for the controller
-   * 
-   * @param e the exception thrown
-   * @param res the request response object
    */
-  onException(e: BaseException, res: Response): void | Boolean {
+  onException(e: BaseException, ctx: IRequestContext): Boolean | IHTTPResponseFacade {
     return false;
   }
 }

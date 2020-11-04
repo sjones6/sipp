@@ -1,33 +1,40 @@
 import { User } from "../models/User";
-import { Controller, Get, IRequestContext } from "../../src";
+import {
+  BaseException,
+  Controller,
+  Create,
+  Get,
+  IHTTPResponseFacade,
+  json,
+  NotFoundException,
+  Post,
+  Resolve,
+  view,
+  redirect,
+} from "../../src";
+import { UsersList, ShowUser } from './Users';
 
-export class UserController extends Controller {
+export class UsersController extends Controller {
   @Get()
-  public async listUsers(ctx: IRequestContext): Promise<void> {
-    const users = await User.query()
-    ctx.res.json(users);
+  public async listUsers(): Promise<any> {
+    return view<User[]>(UsersList, await User.query());
   }
 
-  @Get('/:id')
-  public async getUser(ctx: IRequestContext) {
-    const u = await User.query().where({
-      id: ctx.params.id
-    })
-    ctx.res.json(u);
+  @Post()
+  public async createUser(@Create(User) user: User) {
+    return redirect(`/users/${user.id}`);
   }
 
-  @Get('/create')
-  public async createUser(ctx: IRequestContext) {
-    const u = await User.query().insert({
-      email: `${Date.now()}@email.com`,
-      password: 'yohoo',
-    })
-    ctx.res.json(u);
+  @Get('/:user')
+  public async getUser(@Resolve(User) user: User) {
+    return view<User>(ShowUser, user);
   }
 
-  @Get('/delete')
-  public async deleteUsers(ctx: IRequestContext) {
-    await User.query().delete()
-    ctx.res.json({ msg: 'its done'});
+  onException(e: BaseException): boolean | IHTTPResponseFacade {
+    switch (true) {
+      case e instanceof NotFoundException:
+        return json({ lost: true });
+    }
+    return false;
   }
 }

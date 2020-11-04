@@ -4,8 +4,10 @@ import { exceptionView } from './exception';
 
 export class ExceptionHandler {
   handle(exception: BaseException, ctx: IRequestContext): boolean {
-    ctx.res.status(exception.code);
-    ctx.res.send(exceptionView(exception));
+    if (!ctx.res.headersSent) {
+      ctx.res.status(exception.code);
+      ctx.res.send(exceptionView(exception));
+    }
     return true;
   }
 }
