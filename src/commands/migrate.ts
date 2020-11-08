@@ -43,7 +43,6 @@ export class MigrateCommand extends Command {
     }),
     config: flags.string({
       description: 'path to a config file if not `app.json` in the current working directory',
-      default: './app/config',
       required: false,
     }),
   }

@@ -7,7 +7,7 @@ export const loadConfig = (configFlag?: string): { config: IAppConfig } => {
   }
 
   let app = {
-    config: './app/config'
+    config: './dist/config'
   }
   try {
     const pkg = require(join(process.cwd(), 'package.json'));
@@ -16,6 +16,7 @@ export const loadConfig = (configFlag?: string): { config: IAppConfig } => {
     }
   } catch (err) {
     // swallow - no pkg json.
+    console.error(`could not load package.json, not fatal. Continuing`);
   }
   return require(join(process.cwd(), app.config));
 }

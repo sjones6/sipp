@@ -1,9 +1,9 @@
 {
   "name": "@sjones6/ts-mvc",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "",
   "repository": "git://github.com/sjones6/ts-mvc.git",
-  "main": "dist/index.js",
+  "main": "dist/src/index.js",
   "scripts": {
     "example": "cd example && npx nodemon",
     "dev": "tsc --watch",
