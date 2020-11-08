@@ -7,7 +7,7 @@ export const loadConfig = (configFlag?: string): { config: IAppConfig } => {
   }
 
   let app = {
-    config: './dist/app/config'
+    config: './dist/config'
   }
   try {
     const pkg = require(join(process.cwd(), 'package.json'));
