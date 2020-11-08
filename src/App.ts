@@ -1,4 +1,5 @@
 import "dotenv";
+import "module-alias/register";
 import express, { Request, Response, NextFunction } from "express";
 import { METHOD_METADATA, PATH_METADATA, ROUTES_METADATA, MIDDLEWARE_METADATA, CONTROLLER_MIDDLEWARE_METADATA } from "./constants";
 import { Controller } from "./Controller";
