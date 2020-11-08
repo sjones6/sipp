@@ -1,12 +1,15 @@
 {
-  "name": "ts-framework",
+  "name": "@sjones6/ts-mvc",
   "version": "0.0.0",
   "description": "",
+  "repository": "git://github.com/sjones6/ts-mvc.git",
   "main": "dist/index.js",
   "scripts": {
     "example": "cd example && npx nodemon",
     "dev": "tsc --watch",
-    "build": "tsc"
+    "build": "tsc",
+    "test": "mocha -r ts-node/register test/**/*.test.{ts,tsx}",
+    "test:watch": "mocha -r ts-node/register test/**/*.test.{ts,tsx} --watch"
   },
   "keywords": [
     "typescript",
@@ -38,8 +41,12 @@
     "typescript": "^4.0.5"
   },
   "devDependencies": {
+    "@types/chai": "^4.2.14",
     "@types/dotenv": "^8.2.0",
     "@types/express": "^4.17.8",
+    "@types/mocha": "^8.0.3",
+    "chai": "^4.2.0",
+    "mocha": "^8.2.1",
     "sqlite3": "^5.0.0"
   }
 }

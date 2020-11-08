@@ -6,6 +6,7 @@ import { Connection } from "./db/Connection";
 import { BaseException, ExceptionHandler, NotFoundException } from "./exceptions";
 import { InvalidControllerReponse } from "./exceptions/RuntimeException";
 import { HTTPResponse } from "./http";
+import { RequestContext } from "./RequestContext";
 import { IAppConfig, IMiddlewareFunc, IRequestContext } from './interfaces';
 
 const defaultConfig = {
@@ -157,14 +158,7 @@ export class App {
    */
   private createRequestContext(req: Request, res: Response): IRequestContext {
     if (!req[CTX_SYMBOL]) {
-      req[CTX_SYMBOL] = {
-        path: req.path,
-        method: req.method,
-        params: req.params,
-        body: req.body,
-        req,
-        res
-      };
+      req[CTX_SYMBOL] = new RequestContext(req, res);
     }
     return req[CTX_SYMBOL];
   }
@@ -203,13 +197,14 @@ export class App {
           if (typeof controllerReponse === 'boolean' && !controllerReponse) {
             // the controller didn't handle the error so throw down the error chain
             next(err);
-          }
-          try {
+          } else {
+            try {
 
-            // controller returned a _non_ boolean response which is expected to be a HttpResponse factory
-            this.handleControllerResponse(controllerReponse, req[CTX_SYMBOL]);
-          } catch (err) {
-            next(err);
+              // controller returned a _non_ boolean response which is expected to be a HttpResponse factory
+              this.handleControllerResponse(controllerReponse, req[CTX_SYMBOL]);
+            } catch (err) {
+              next(err);
+            }
           }
         });
     })

@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
 
 export interface IRequestContext {
-  path: string,
-  method: string,
-  params?: any,
-  body?: any,
-  req: Request,
-  res: Response
+  readonly path: string,
+  readonly method: string,
+  readonly params?: any,
+  readonly body?: any,
+  readonly req: Request,
+  readonly res: Response
 }
