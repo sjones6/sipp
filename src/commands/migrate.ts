@@ -3,6 +3,10 @@ import { join } from 'path';
 import Knex from 'knex';
 import { cli } from 'cli-ux'
 
+// dotenv for DB migrations that might inject
+// env config via environment variables
+import "dotenv";
+import { loadConfig } from './_utils/load-config';
 
 enum CMD {
   UP = 'up',
@@ -13,7 +17,11 @@ enum CMD {
 }
 
 const defaultMigrationOpt = {
-  extension: 'ts'
+  extension: 'ts',
+  directory: "./migrations",
+  tableName: "_migrations",
+  schemaName: null,
+  disableTransactions: false
 }
 
 export class MigrateCommand extends Command {
@@ -33,11 +41,16 @@ export class MigrateCommand extends Command {
     name: flags.string({
       description: 'name of the migration to run or make; required if making a migration'
     }),
+    config: flags.string({
+      description: 'path to a config file if not `app.json` in the current working directory',
+      default: './app/config',
+      required: false,
+    }),
   }
 
   async run() {
     const { args, flags } = this.parse(MigrateCommand);
-    const { config } = require(join(process.cwd(), 'config'));
+    const { config } = loadConfig(flags.config);
     const knex = Knex(config.db);
     const opt = Object.assign({}, config.migrations, defaultMigrationOpt, {
       name: flags.name
@@ -61,6 +74,7 @@ export class MigrateCommand extends Command {
         await knex.migrate.make(flags.name, opt);
         break;
     }
+
     this.exit(0);
   }
 

@@ -1,20 +1,27 @@
 {
   "name": "@sjones6/ts-mvc",
-  "version": "0.0.0",
+  "version": "0.0.4",
   "description": "",
   "repository": "git://github.com/sjones6/ts-mvc.git",
   "main": "dist/index.js",
   "scripts": {
     "example": "cd example && npx nodemon",
     "dev": "tsc --watch",
+    "prebuild": "rm -rf dist",
     "build": "tsc",
     "test": "mocha -r ts-node/register test/**/*.test.{ts,tsx}",
-    "test:watch": "mocha -r ts-node/register test/**/*.test.{ts,tsx} --watch"
+    "test:watch": "mocha -r ts-node/register test/**/*.test.{ts,tsx} --watch",
+    "prepublish": "npm test && npm run build"
   },
   "keywords": [
     "typescript",
     "web-framework",
     "mvc"
+  ],
+  "files": [
+    "/bin",
+    "/dist",
+    "/oclif.manifest.json"
   ],
   "author": "sjones6",
   "license": "MIT",
@@ -22,7 +29,7 @@
     "ts-mvc": "./bin/run"
   },
   "oclif": {
-    "commands": "./dist/commands",
+    "commands": "./dist/src/commands",
     "bin": "ts-mvc",
     "plugins": [
       "@oclif/plugin-help"

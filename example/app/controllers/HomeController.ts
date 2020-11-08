@@ -1,4 +1,4 @@
-import { Controller, Get, IRequestContext } from "../../src";
+import { Controller, Get, IRequestContext } from "../../../src";
 
 export class HomeController extends Controller {
   public basePath = '';

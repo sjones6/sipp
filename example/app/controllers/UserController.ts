@@ -1,4 +1,4 @@
-import { User } from "../models/User";
+import { User } from "../../models/User";
 import {
   BaseException,
   Controller,
@@ -11,7 +11,7 @@ import {
   Resolve,
   view,
   redirect,
-} from "../../src";
+} from "../../../src";
 import { UsersList, ShowUser } from './Users';
 
 export class UsersController extends Controller {

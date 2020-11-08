@@ -1,4 +1,4 @@
-import { App } from '../src';
+import { App } from '../../src';
 import controllers from './controllers';
 import { config } from './config'
 

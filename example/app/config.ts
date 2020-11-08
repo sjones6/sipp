@@ -1,5 +1,5 @@
 import { join } from 'path';
-import { IAppConfig } from '../src';
+import { IAppConfig } from '../../src';
 
 export const config: IAppConfig = {
   db: {

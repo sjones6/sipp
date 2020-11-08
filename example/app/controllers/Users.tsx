@@ -1,4 +1,4 @@
-import { h } from '../../src';
+import { h } from '../../../src';
 import { User } from "../models/User";
 
 export function UsersList(users: User[]) {
