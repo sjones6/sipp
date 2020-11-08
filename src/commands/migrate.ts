@@ -1,10 +1,10 @@
 import Command, { flags } from '@oclif/command';
-import { join } from 'path';
 import Knex from 'knex';
 import { cli } from 'cli-ux'
 
 // dotenv for DB migrations that might inject
 // env config via environment variables
+import "ts-node/register";
 import "dotenv";
 import { loadConfig } from './_utils/load-config';
 
@@ -18,6 +18,7 @@ enum CMD {
 
 const defaultMigrationOpt = {
   extension: 'ts',
+  loadExtensions: ['.ts'],
   directory: "./migrations",
   tableName: "_migrations",
   schemaName: null,
