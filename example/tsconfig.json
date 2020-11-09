@@ -12,7 +12,11 @@
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": ".",
-    "incremental": true
+    "incremental": true,
+    "paths": {
+      "@app/*": ["app/*"],
+      "@src/*": ["../src/*"]
+    },
   },
   "exclude": ["node_modules", "dist", "example"]
 }

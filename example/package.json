@@ -7,7 +7,12 @@
     "config": "./app/config"
   },
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "start": "nodemon"
+  },
+  "_moduleAliases": {
+    "@app": "dist",
+    "@src": "../dist"
   },
   "dependencies": {
     "@types/express": "^4.17.8",

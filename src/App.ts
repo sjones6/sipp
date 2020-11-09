@@ -1,5 +1,5 @@
 import "dotenv";
-import "module-alias/register";
+import initModuleAlias from "module-alias";
 import express, { Request, Response, NextFunction } from "express";
 import { METHOD_METADATA, PATH_METADATA, ROUTES_METADATA, MIDDLEWARE_METADATA, CONTROLLER_MIDDLEWARE_METADATA } from "./constants";
 import { Controller } from "./Controller";
@@ -9,6 +9,9 @@ import { InvalidControllerReponse } from "./exceptions/RuntimeException";
 import { HTTPResponse } from "./http";
 import { RequestContext } from "./RequestContext";
 import { IAppConfig, IMiddlewareFunc, IRequestContext } from './interfaces';
+
+// initializes the module-alias processing with the root same as the process working directory
+initModuleAlias(process.cwd());
 
 const defaultConfig = {
   basePath: '',

@@ -10,6 +10,6 @@ export class HomeController extends Controller {
 
   @Get('/foo')
   public getFoo(ctx: IRequestContext) {
-    
+    return this.redirect('/');
   }
 }
