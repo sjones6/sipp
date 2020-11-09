@@ -1,6 +1,6 @@
 {
   "name": "@sjones6/ts-mvc",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "",
   "repository": "git://github.com/sjones6/ts-mvc.git",
   "main": "dist/index.js",
