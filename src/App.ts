@@ -20,10 +20,7 @@ const CTX_SYMBOL = Symbol('ctx');
 export class App {
   private app: express.Application
   private controllers: Controller[] = []
-  private middleware: IMiddlewareFunc[] = [
-    express.json(),
-    express.urlencoded({ extended: true })
-  ]
+  private middleware: IMiddlewareFunc[] = []
   private exceptionHandler: ExceptionHandler
   private connection: Connection
   private config: IAppConfig
@@ -34,6 +31,8 @@ export class App {
     this.config = Object.assign({}, defaultConfig, config);
     this.exceptionHandler = new ExceptionHandler();
     this.connection = new Connection(this.config);
+
+
   }
 
   static bootstrap(config?: IAppConfig, controllers?: Controller[]): App {
@@ -41,7 +40,25 @@ export class App {
       express(),
       config,
       controllers
-    );
+    ).init();
+  }
+
+  public init(): App {
+
+    // wire default handling of payloads
+    this.withMiddleware([
+      express.json(),
+      express.urlencoded({ extended: true }),
+    ]);
+
+    // wire static file serving
+    if (this.config.static) {
+      this.withMiddleware([
+        express.static(this.config.static)
+      ]);
+    }
+
+    return this;
   }
 
   /**

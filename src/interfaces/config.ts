@@ -9,6 +9,7 @@ interface IMigrationConfig {
 
 export interface IAppConfig {
   basePath?: string
+  static?: string
   port?: number
   db: Knex.Config
   migrations: IMigrationConfig
