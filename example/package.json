@@ -12,10 +12,11 @@
   },
   "_moduleAliases": {
     "@app": "dist",
-    "@src": "../dist"
+    "@src": "./../dist"
   },
   "dependencies": {
     "@types/express": "^4.17.8",
+    "module-alias": "^2.2.2",
     "nodemon": "^2.0.6",
     "sqlite3": "^5.0.0",
     "ts-mvc": "file:./../",

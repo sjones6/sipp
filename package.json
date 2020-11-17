@@ -1,8 +1,8 @@
 {
   "name": "@sjones6/sipp",
-  "version": "0.0.12",
+  "version": "0.0.0",
   "description": "",
-  "repository": "git://github.com/sjones6/ts-mvc.git",
+  "repository": "git://github.com/sjones6/sipp.git",
   "main": "dist/index.js",
   "scripts": {
     "example": "cd example && npx nodemon",
@@ -39,12 +39,21 @@
   "dependencies": {
     "@oclif/command": "^1.8.0",
     "@oclif/plugin-help": "^3.2.0",
+    "@types/connect-flash": "0.0.36",
+    "@types/csurf": "^1.11.0",
+    "@types/express-session": "^1.17.2",
     "cli-ux": "^5.5.0",
+    "connect-flash": "^0.1.1",
+    "cookie-parser": "^1.4.5",
+    "csurf": "^1.11.0",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
+    "express-session": "^1.17.1",
     "knex": "^0.21.12",
+    "method-override": "^3.0.0",
     "module-alias": "^2.2.2",
     "objection": "^2.2.3",
+    "query-string": "^6.13.7",
     "reflect-metadata": "^0.1.13",
     "ts-node": "^9.0.0",
     "typescript": "^4.0.5"

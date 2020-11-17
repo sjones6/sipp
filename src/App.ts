@@ -1,12 +1,18 @@
 import 'dotenv';
 import initModuleAlias from 'module-alias';
 import express, { Request, Response, NextFunction } from 'express';
+import session from 'express-session';
+import flash from 'connect-flash';
+import csurf from 'csurf';
+import cookieParser from 'cookie-parser';
+import methodOverride from 'method-override';
 import {
   METHOD_METADATA,
   PATH_METADATA,
   ROUTES_METADATA,
   MIDDLEWARE_METADATA,
   CONTROLLER_MIDDLEWARE_METADATA,
+  PATH_OPTION_METADATA,
 } from './constants';
 import { Controller } from './Controller';
 import { Connection } from './db/Connection';
@@ -16,9 +22,10 @@ import {
   NotFoundException,
 } from './exceptions';
 import { InvalidControllerReponse } from './exceptions/RuntimeException';
-import { HTTPResponse } from './http';
+import { HTTPResponse, JSONResponse } from './http';
 import { RequestContext } from './RequestContext';
-import { IAppConfig, IMiddlewareFunc, IRequestContext } from './interfaces';
+import { IAppConfig, IMiddlewareFunc } from './interfaces';
+import { RouteMapper } from './routing/RouteMapper';
 
 // initializes the module-alias processing with the root same as the process working directory
 initModuleAlias(process.cwd());
@@ -35,6 +42,7 @@ export class App {
   private controllers: Controller[] = [];
   private middleware: IMiddlewareFunc[] = [];
   private exceptionHandler: ExceptionHandler;
+  private routeMapper: RouteMapper;
   private connection: Connection;
   private config: IAppConfig;
 
@@ -47,6 +55,7 @@ export class App {
     this.controllers = controllers || [];
     this.config = Object.assign({}, defaultConfig, config);
     this.exceptionHandler = new ExceptionHandler();
+    this.routeMapper = new RouteMapper();
     this.connection = new Connection(this.config);
   }
 
@@ -59,11 +68,32 @@ export class App {
     this.withMiddleware([
       express.json(),
       express.urlencoded({ extended: true }),
+      methodOverride('_method'),
     ]);
 
     // wire static file serving
     if (this.config.static) {
       this.withMiddleware([express.static(this.config.static)]);
+    }
+
+    if (this.config.csrf !== false) {
+      if (this.config.csrf.cookie) {
+        this.withMiddleware([cookieParser()]);
+      }
+      this.withMiddleware([
+        csurf(this.config.csrf),
+        (req, res, next) => {
+          if (req.body && req.body._csrf) {
+            req.headers['csrf-token'] = req.body._csrf;
+            delete req.body._csrf;
+          }
+          next();
+        },
+      ]);
+    }
+
+    if (this.config.session !== false) {
+      this.withMiddleware([session(this.config.session), flash()]);
     }
 
     return this;
@@ -138,11 +168,25 @@ export class App {
           PATH_METADATA,
           controller[method],
         );
+        const pathOptionMetadata = Reflect.getMetadata(
+          PATH_OPTION_METADATA,
+          controller[method],
+        );
         const methodMetadata = Reflect.getMetadata(
           METHOD_METADATA,
           controller[method],
         );
         if (methodMetadata && pathMetadata) {
+          const fullPath = this.constructPath(
+            pathMetadata,
+            controller.getBasePath(),
+          );
+
+          // register the route with the mapper
+          if (pathOptionMetadata && pathOptionMetadata.name) {
+            this.routeMapper.register(pathOptionMetadata.name, fullPath);
+          }
+
           // gather up the middleware to apply in order
           const controllerMiddleware = Reflect.getMetadata(
             CONTROLLER_MIDDLEWARE_METADATA,
@@ -157,7 +201,7 @@ export class App {
           this.app[methodMetadata].apply(
             this.app,
             [
-              this.constructPath(pathMetadata, controller.getBasePath()),
+              fullPath,
               ...[
                 ...(controllerMiddleware || []), // controller middleware
                 ...(methodMiddleware || []), // method handler middleware
@@ -198,9 +242,9 @@ export class App {
   /**
    * Create a full-request context for a state-less request
    */
-  private createRequestContext(req: Request, res: Response): IRequestContext {
+  private createRequestContext(req: Request, res: Response): RequestContext {
     if (!req[CTX_SYMBOL]) {
-      req[CTX_SYMBOL] = new RequestContext(req, res);
+      req[CTX_SYMBOL] = new RequestContext(req, res, this.routeMapper);
     }
     return req[CTX_SYMBOL];
   }
@@ -266,18 +310,47 @@ export class App {
 
   private handleControllerResponse(
     controllerReponse,
-    ctx: IRequestContext,
+    ctx: RequestContext,
   ): void {
-    const reply: HTTPResponse =
-      typeof controllerReponse === 'function'
-        ? controllerReponse(ctx)
-        : new HTTPResponse(ctx, controllerReponse);
+    const reply: HTTPResponse = this.resolveControllerResponse(
+      ctx,
+      controllerReponse,
+    );
     if (reply instanceof HTTPResponse) {
       reply.handle();
     } else {
       throw new InvalidControllerReponse(
         `controller reponse ${typeof reply} invalid`,
       );
+    }
+  }
+
+  private resolveControllerResponse(
+    ctx: RequestContext,
+    controllerReponse: any,
+  ): HTTPResponse {
+    if (controllerReponse instanceof HTTPResponse) {
+      return controllerReponse;
+    }
+
+    // usually a factory facade that returns a HTTPResponse
+    if (typeof controllerReponse === 'function') {
+      const reply = controllerReponse(ctx);
+      if (!(reply instanceof HTTPResponse)) {
+        throw new InvalidControllerReponse(
+          `controller reponse ${typeof reply}, expected an instance of ${
+            HTTPResponse.name
+          }`,
+        );
+      }
+      return reply;
+    }
+
+    switch (typeof controllerReponse) {
+      case 'object':
+        return new JSONResponse(ctx, controllerReponse);
+      default:
+        return new HTTPResponse(ctx, controllerReponse);
     }
   }
 }

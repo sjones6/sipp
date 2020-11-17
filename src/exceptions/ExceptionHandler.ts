@@ -1,9 +1,9 @@
 import { BaseException } from './BaseException';
-import { IRequestContext } from '../interfaces';
+import { RequestContext } from '../RequestContext';
 import { exceptionView } from './exception';
 
 export class ExceptionHandler {
-  handle(exception: BaseException, ctx: IRequestContext): boolean {
+  handle(exception: BaseException, ctx: RequestContext): boolean {
     if (!ctx.res.headersSent) {
       ctx.res.status(exception.code);
       ctx.res.send(exceptionView(exception));

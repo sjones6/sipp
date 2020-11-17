@@ -9,3 +9,4 @@ export * from './interfaces';
 export * from './jsx';
 export * from './facades';
 export * from './http';
+export * from './RequestContext';

@@ -1,41 +1,28 @@
 import { PARAMETER_METADATA, PARAMS } from '../constants';
 
-const makeParam = (key) => {
-  return (
-    target: Object,
-    propertyKey: string | symbol,
-    parameterIndex: number,
-  ) => {
-    const existingParams: any[] =
-      Reflect.getOwnMetadata(PARAMETER_METADATA, target, propertyKey) || [];
-    existingParams.push(key);
-    Reflect.defineMetadata(
-      PARAMETER_METADATA,
-      existingParams,
-      target,
-      propertyKey,
-    );
+function makeParam<T>(key) {
+  return (arg: T) => {
+    return (
+      target: Object,
+      propertyKey: string | symbol,
+      parameterIndex: number,
+    ) => {
+      const existingParams: any[] =
+        Reflect.getOwnMetadata(PARAMETER_METADATA, target, propertyKey) || [];
+      existingParams[parameterIndex] = { key, arg };
+      Reflect.defineMetadata(
+        PARAMETER_METADATA,
+        existingParams,
+        target,
+        propertyKey,
+      );
+    };
   };
-};
+}
 
-const makeModelParam = (key) => (Model) => {
-  return (
-    target: Object,
-    propertyKey: string | symbol,
-    parameterIndex: number,
-  ) => {
-    const paramConfigs: object =
-      Reflect.getOwnMetadata(PARAMETER_METADATA, target) || {};
-    const existingParams = paramConfigs[propertyKey] || [];
-    existingParams.push({
-      key,
-      Model,
-    });
-    paramConfigs[propertyKey] = existingParams;
-    Reflect.defineMetadata(PARAMETER_METADATA, paramConfigs, target);
-  };
-};
-
-export const Body = makeParam(PARAMS.BODY);
-export const Create = makeModelParam(PARAMS.CREATE);
-export const Resolve = makeModelParam(PARAMS.GET);
+export const Body = makeParam<void>(PARAMS.BODY);
+export const Ctx = makeParam<void>(PARAMS.CTX);
+export const Param = makeParam<string>(PARAMS.PARAM);
+export const Req = makeParam<void>(PARAMS.REQ);
+export const Res = makeParam<void>(PARAMS.RES);
+export const Session = makeParam<void>(PARAMS.SESSION);

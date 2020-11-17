@@ -1,3 +1,7 @@
+export interface Props {
+  children?: any;
+}
+
 function stringifyChildren(child: any): string {
   let stringifiedChild: string = typeof child === 'string' ? child : '';
   if (!stringifiedChild) {

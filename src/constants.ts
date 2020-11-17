@@ -10,11 +10,15 @@ export const enum RequestMethod {
 
 export enum PARAMS {
   BODY = 'body',
-  CREATE = 'CREATE',
-  GET = 'GET',
+  REQ = 'req',
+  RES = 'res',
+  PARAM = 'param',
+  SESSION = 'session',
+  CTX = 'ctx',
 }
 
 export const PATH_METADATA = '__PATH_METADATA__';
+export const PATH_OPTION_METADATA = '__PATH_OPTION_METADATA__';
 export const METHOD_METADATA = '__METHOD_METADATA__';
 export const ROUTES_METADATA = '__ROUTES_METADATA__';
 export const CONTROLLER_MIDDLEWARE_METADATA =

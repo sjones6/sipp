@@ -1,4 +1,4 @@
-import { IRequestContext } from '../interfaces';
+import { RequestContext } from '../RequestContext';
 import { HTTPResponse } from './HTTPResponse';
 import { MIME_TYPES } from './mime';
 
@@ -7,7 +7,7 @@ export class HTMLResponse extends HTTPResponse {
   protected view;
   static withView<T>(
     view: Function,
-    ctx: IRequestContext,
+    ctx: RequestContext,
     data: T,
     status?: number,
   ): HTMLResponse {
@@ -19,6 +19,6 @@ export class HTMLResponse extends HTTPResponse {
     this.view = view;
   }
   protected setBody() {
-    this.ctx.res.send(this.view(this.controllerResponse));
+    this.ctx.res.send(this.view(this.controllerResponse, this.ctx));
   }
 }

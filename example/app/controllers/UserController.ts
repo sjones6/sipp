@@ -1,13 +1,16 @@
 import { User } from '../models/User';
 import {
   BaseException,
+  Body,
   Controller,
-  Create,
+  Session,
+  RequestSession,
   Get,
   IHTTPResponseFacade,
   NotFoundException,
+  Param,
   Post,
-  Resolve,
+  Delete,
 } from '@src/index';
 import { UsersList, ShowUser } from './Users';
 
@@ -17,14 +20,22 @@ export class UsersController extends Controller {
     return this.view<User[]>(UsersList, await User.query());
   }
 
-  @Post()
-  public async createUser(@Create(User) user: User) {
+  @Post('', { name: 'create-user' })
+  public async createUser(@Body() user, @Session() session: RequestSession) {
+    user = await User.query().insert(user);
+    session.flash('success', 'yay!');
     return this.redirect(`/users/${user.id}`);
   }
 
-  @Get('/:user')
-  public async getUser(@Resolve(User) user: User) {
-    return this.view<User>(ShowUser, user);
+  @Get('/:user', { name: 'get-user' })
+  public async getUser(@Param('user') id) {
+    return this.view<User>(ShowUser, await User.query().findById(id));
+  }
+
+  @Delete('/:user', { name: 'delete-user' })
+  public async deleteUser(@Param('user') id) {
+    await User.query().deleteById(id);
+    return this.redirect(`/users`);
   }
 
   onException(e: BaseException): boolean | IHTTPResponseFacade {

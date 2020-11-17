@@ -15,7 +15,7 @@
     "incremental": true,
     "paths": {
       "@app/*": ["app/*"],
-      "@src/*": ["../src/*"]
+      "@src/*": ["../dist/*"]
     },
   },
   "exclude": ["node_modules", "dist", "example"]

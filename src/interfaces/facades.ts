@@ -1,6 +1,6 @@
 import { HTTPResponse } from '../http';
-import { IRequestContext } from './request';
+import { RequestContext } from '../RequestContext';
 
 export interface IHTTPResponseFacade {
-  (ctx: IRequestContext): HTTPResponse;
+  (ctx: RequestContext): HTTPResponse;
 }

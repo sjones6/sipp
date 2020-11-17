@@ -1,6 +1,7 @@
 import { BaseException } from './exceptions';
-import { IHTTPResponseFacade, IRequestContext } from './interfaces';
+import { IHTTPResponseFacade } from './interfaces';
 import { view, json, text, redirect } from './facades';
+import { RequestContext } from './RequestContext';
 
 export class Controller {
   public readonly basePath: string | null = null;
@@ -31,7 +32,7 @@ export class Controller {
    */
   onException(
     e: BaseException,
-    ctx: IRequestContext,
+    ctx: RequestContext,
   ): Boolean | IHTTPResponseFacade {
     return false;
   }
