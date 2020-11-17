@@ -20,10 +20,10 @@ export class UsersController extends Controller {
     return this.view<User[]>(UsersList, await User.query());
   }
 
-  @Post('', { name: 'create-user' })
+  @Post('/', { name: 'user.create' })
   public async createUser(@Body() user, @Session() session: RequestSession) {
     user = await User.query().insert(user);
-    session.flash('success', 'yay!');
+    session.flash('success', 'yay! you are a user');
     return this.redirect(`/users/${user.id}`);
   }
 
