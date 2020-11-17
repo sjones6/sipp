@@ -1,5 +1,5 @@
 {
-  "name": "@sjones6/ts-mvc",
+  "name": "@sjones6/sipp",
   "version": "0.0.12",
   "description": "",
   "repository": "git://github.com/sjones6/ts-mvc.git",
@@ -9,6 +9,7 @@
     "dev": "tsc --watch",
     "prebuild": "rm -rf dist",
     "build": "tsc",
+    "prettier": "prettier --single-quote --trailing-comma all --write \"{example,src,test}/**/*.{js,ts,tsx}\"",
     "test": "mocha -r ts-node/register test/**/*.test.{ts,tsx}",
     "test:watch": "mocha -r ts-node/register test/**/*.test.{ts,tsx} --watch",
     "prepublish": "npm test && npm run build"
@@ -26,11 +27,11 @@
   "author": "sjones6",
   "license": "MIT",
   "bin": {
-    "ts-mvc": "./bin/run"
+    "sipp": "./bin/run"
   },
   "oclif": {
     "commands": "./dist/commands",
-    "bin": "ts-mvc",
+    "bin": "sipp",
     "plugins": [
       "@oclif/plugin-help"
     ]
@@ -55,6 +56,7 @@
     "@types/mocha": "^8.0.3",
     "chai": "^4.2.0",
     "mocha": "^8.2.1",
+    "prettier": "^2.1.2",
     "sqlite3": "^5.0.0"
   }
 }

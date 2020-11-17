@@ -4,7 +4,7 @@ export class BaseException extends Error {
   static toException(e: Error) {
     if (e instanceof BaseException) {
       return e;
-    } 
+    }
     const exception = new this(e.message);
     exception.stack = e.stack;
     return exception;

@@ -1,4 +1,4 @@
-import { IRequestContext } from "./interfaces";
+import { IRequestContext } from './interfaces';
 import { Request, Response } from 'express';
 
 export class RequestContext implements IRequestContext {

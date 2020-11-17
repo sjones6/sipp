@@ -1,14 +1,13 @@
-import { Controller } from "../src";
-import { expect } from "chai";
+import { Controller } from '../src';
+import { expect } from 'chai';
 
-class TestController extends Controller {};
+class TestController extends Controller {}
 
 class OverriddenController extends Controller {
-  basePath = '/foo'
-};
+  basePath = '/foo';
+}
 
 describe('controller', () => {
-
   it('getBathPath - not overriden', () => {
     const c = new TestController();
     expect(c.getBasePath()).equal('test');
@@ -18,5 +17,4 @@ describe('controller', () => {
     const c = new OverriddenController();
     expect(c.getBasePath()).equal('foo');
   });
-
 });

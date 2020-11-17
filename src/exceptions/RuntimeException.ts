@@ -1,5 +1,3 @@
-import { BaseException } from "./BaseException";
+import { BaseException } from './BaseException';
 
-export class InvalidControllerReponse extends BaseException {
-  
-}
+export class InvalidControllerReponse extends BaseException {}

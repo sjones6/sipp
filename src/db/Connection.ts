@@ -1,9 +1,9 @@
-import { Model } from './Model'
+import { Model } from './Model';
 import Knex from 'knex';
 import { IAppConfig } from '../interfaces';
 
 export class Connection {
-  private readonly knex: Knex
+  private readonly knex: Knex;
   constructor(config: IAppConfig) {
     this.knex = Knex(config.db);
   }

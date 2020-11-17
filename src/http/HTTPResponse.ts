@@ -1,13 +1,13 @@
-import { IRequestContext } from "../interfaces";
+import { IRequestContext } from '../interfaces';
 import { MIME_TYPES } from './mime';
 
 export class HTTPResponse {
-  protected readonly mimeType: string = MIME_TYPES.TEXT
+  protected readonly mimeType: string = MIME_TYPES.TEXT;
   constructor(
     protected readonly ctx: IRequestContext,
     protected readonly controllerResponse: any,
-    protected readonly status: number = 200
-  ) { }
+    protected readonly status: number = 200,
+  ) {}
   public handle() {
     this.setStatus();
     this.setMimeType();

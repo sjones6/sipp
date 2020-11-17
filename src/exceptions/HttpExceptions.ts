@@ -1,4 +1,4 @@
-import { BaseException } from "./BaseException";
+import { BaseException } from './BaseException';
 
 export class NoResponseException extends BaseException {
   public readonly code: 204;

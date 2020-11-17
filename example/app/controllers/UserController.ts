@@ -1,4 +1,4 @@
-import { User } from "../models/User";
+import { User } from '../models/User';
 import {
   BaseException,
   Controller,
@@ -8,7 +8,7 @@ import {
   NotFoundException,
   Post,
   Resolve,
-} from "@src/index";
+} from '@src/index';
 import { UsersList, ShowUser } from './Users';
 
 export class UsersController extends Controller {

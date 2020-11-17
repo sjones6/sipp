@@ -1,5 +1,12 @@
-import { NotFoundException } from "../exceptions";
-import { PATH_METADATA, METHOD_METADATA, ROUTES_METADATA, RequestMethod, PARAMETER_METADATA, PARAMS } from "../constants";
+import { NotFoundException } from '../exceptions';
+import {
+  PATH_METADATA,
+  METHOD_METADATA,
+  ROUTES_METADATA,
+  RequestMethod,
+  PARAMETER_METADATA,
+  PARAMS,
+} from '../constants';
 
 export interface RequestMappingMetadata {
   [PATH_METADATA]?: string | string[];
@@ -27,8 +34,9 @@ export const RequestMapping = (
     ROUTES[key] = 1;
 
     const method = descriptor.value;
-    descriptor.value = async function() {
-      const targetParamMetadata = Reflect.getMetadata(PARAMETER_METADATA, target) || {};
+    descriptor.value = async function () {
+      const targetParamMetadata =
+        Reflect.getMetadata(PARAMETER_METADATA, target) || {};
       const paramMetadata = targetParamMetadata[key] || [];
       if (paramMetadata.length) {
         const realArgs = [];
@@ -46,11 +54,17 @@ export const RequestMapping = (
             case PARAMS.GET:
               const modelName = param.Model.modelName();
               if (!ctx.params[modelName]) {
-                throw new NotFoundException(`cannot find ${modelName}, insufficient id`);
+                throw new NotFoundException(
+                  `cannot find ${modelName}, insufficient id`,
+                );
               }
-              const m = await param.Model.query().findById(ctx.params[modelName]);
+              const m = await param.Model.query().findById(
+                ctx.params[modelName],
+              );
               if (!m) {
-                throw new NotFoundException(`cannot find ${modelName} with id ${ctx.params[modelName]}`);
+                throw new NotFoundException(
+                  `cannot find ${modelName} with id ${ctx.params[modelName]}`,
+                );
               }
               realArgs.push(m);
               break;
@@ -59,7 +73,7 @@ export const RequestMapping = (
         return method.apply(this, realArgs);
       }
       return method.apply(this, arguments);
-    }
+    };
 
     Reflect.defineMetadata(ROUTES_METADATA, ROUTES, target);
     Reflect.defineMetadata(PATH_METADATA, path, descriptor.value);

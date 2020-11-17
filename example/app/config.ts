@@ -6,11 +6,11 @@ export const config: IAppConfig = {
     client: 'sqlite3',
     useNullAsDefault: true,
     connection: async () => ({
-      filename: join(__dirname, 'tmp', 'db.sqlite')
-    })
+      filename: join(__dirname, 'tmp', 'db.sqlite'),
+    }),
   },
   migrations: {
     directory: join(__dirname, 'migrations'),
     tableName: '_migrations',
-  }
-}
+  },
+};

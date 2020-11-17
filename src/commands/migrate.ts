@@ -1,11 +1,11 @@
 import Command, { flags } from '@oclif/command';
 import Knex from 'knex';
-import { cli } from 'cli-ux'
+import { cli } from 'cli-ux';
 
 // dotenv for DB migrations that might inject
 // env config via environment variables
-import "ts-node/register";
-import "dotenv";
+import 'ts-node/register';
+import 'dotenv';
 import { loadConfig } from './_utils/load-config';
 
 enum CMD {
@@ -13,20 +13,20 @@ enum CMD {
   DOWN = 'down',
   LIST = 'list',
   ROLLBACK = 'rollback',
-  MAKE = 'make'
+  MAKE = 'make',
 }
 
 const defaultMigrationOpt = {
   extension: 'ts',
   loadExtensions: ['.ts'],
-  directory: "./migrations",
-  tableName: "_migrations",
+  directory: './migrations',
+  tableName: '_migrations',
   schemaName: null,
-  disableTransactions: false
-}
+  disableTransactions: false,
+};
 
 export class MigrateCommand extends Command {
-  static description = 'migrate your db'
+  static description = 'migrate your db';
 
   static args = [
     {
@@ -35,25 +35,27 @@ export class MigrateCommand extends Command {
       description: 'migration command to run',
       default: CMD.LIST,
       options: [CMD.LIST, CMD.MAKE, CMD.UP, CMD.DOWN, CMD.ROLLBACK],
-    }
-  ]
+    },
+  ];
 
   static flags = {
     name: flags.string({
-      description: 'name of the migration to run or make; required if making a migration'
+      description:
+        'name of the migration to run or make; required if making a migration',
     }),
     config: flags.string({
-      description: 'path to a config file if not `app.json` in the current working directory',
+      description:
+        'path to a config file if not `app.json` in the current working directory',
       required: false,
     }),
-  }
+  };
 
   async run() {
     const { args, flags } = this.parse(MigrateCommand);
     const { config } = loadConfig(flags.config);
     const knex = Knex(config.db);
     const opt = Object.assign({}, config.migrations, defaultMigrationOpt, {
-      name: flags.name
+      name: flags.name,
     });
 
     switch (args.cmd) {
@@ -79,13 +81,19 @@ export class MigrateCommand extends Command {
   }
 
   private printTable(list: Array<Array<string>>) {
-    const migrations = list.filter(([name]) => name).map(([name]) => ({ name }));
-    cli.table(migrations, {
-      name: {
-        minWidth: 7,
+    const migrations = list
+      .filter(([name]) => name)
+      .map(([name]) => ({ name }));
+    cli.table(
+      migrations,
+      {
+        name: {
+          minWidth: 7,
+        },
       },
-    }, {
-      printLine: this.log,
-    })
+      {
+        printLine: this.log,
+      },
+    );
   }
 }

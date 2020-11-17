@@ -1,7 +1,4 @@
-import { HomeController } from "./HomeController";
-import { UsersController } from "./UserController";
+import { HomeController } from './HomeController';
+import { UsersController } from './UserController';
 
-export default [
-  new HomeController(),
-  new UsersController(),
-]
+export default [new HomeController(), new UsersController()];
