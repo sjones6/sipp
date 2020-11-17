@@ -28,6 +28,8 @@ jobs:
           ${{ runner.os }}-build-
           ${{ runner.os }}-
     - run: npm ci --prefer-offline --no-audit
+      env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - run: npm run build
     - run: npm test
       env:
