@@ -22,7 +22,9 @@ function makeParam<T>(key) {
 
 export const Body = makeParam<void>(PARAMS.BODY);
 export const Ctx = makeParam<void>(PARAMS.CTX);
+export const Header = makeParam<void>(PARAMS.HEADER);
 export const Param = makeParam<string>(PARAMS.PARAM);
+export const Query = makeParam<void>(PARAMS.QUERY);
 export const Req = makeParam<void>(PARAMS.REQ);
 export const Res = makeParam<void>(PARAMS.RES);
 export const Session = makeParam<void>(PARAMS.SESSION);

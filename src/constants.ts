@@ -10,11 +10,13 @@ export const enum RequestMethod {
 
 export enum PARAMS {
   BODY = 'body',
+  CTX = 'ctx',
+  HEADER = 'header',
+  PARAM = 'param',
+  QUERY = 'query',
   REQ = 'req',
   RES = 'res',
-  PARAM = 'param',
   SESSION = 'session',
-  CTX = 'ctx',
 }
 
 export const PATH_METADATA = '__PATH_METADATA__';

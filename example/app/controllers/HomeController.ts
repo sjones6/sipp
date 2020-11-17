@@ -1,16 +1,17 @@
-import { Controller, Get, RequestContext } from '@src/index';
+import { Controller, Ctx, Get, Query, RequestContext } from '@src/index';
 
 export class HomeController extends Controller {
   public basePath = '';
 
   @Get('/', { name: 'home' })
-  public getHome(ctx: RequestContext) {
+  public getHome(@Ctx() ctx: RequestContext, @Query() query) {
     return this.json({
       path: ctx.path,
       method: ctx.method,
       home: ctx.url('home'),
       user: ctx.url('get-user', { user: 1 }),
       flash: ctx.session.getFlash('info'),
+      query
     });
   }
 

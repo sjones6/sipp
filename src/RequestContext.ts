@@ -20,6 +20,7 @@ export class RequestContext {
   public readonly method: string;
   public readonly params?: any;
   public readonly body?: any;
+  public readonly query?: object;
   public readonly session: RequestSession;
   constructor(
     public readonly req: Request,
@@ -30,6 +31,7 @@ export class RequestContext {
     this.method = req.method;
     this.params = req.params;
     this.body = req.body;
+    this.query = req.query;
     this.session = new RequestSession(req, res);
   }
 

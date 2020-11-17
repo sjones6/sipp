@@ -65,6 +65,13 @@ export const RequestMapping = (
             case PARAMS.PARAM:
               realArgs.push(ctx.params ? ctx.params[param.arg] : undefined);
               break;
+            case PARAMS.HEADER:
+              const headers = ctx.req.headers;
+              realArgs.push(headers[param.arg] || undefined);
+              break;
+            case PARAMS.QUERY:
+              realArgs.push(ctx.query || {});
+              break;
             case PARAMS.SESSION:
               realArgs.push(ctx.session);
               break;
