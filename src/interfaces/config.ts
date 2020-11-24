@@ -2,6 +2,7 @@ import Knex from 'knex';
 import { SessionOptions } from 'express-session';
 import { Request } from 'express';
 import { CookieOptions } from 'csurf';
+import { Logger } from '../logger';
 
 interface IMigrationConfig {
   directory: string;
@@ -21,11 +22,17 @@ interface ICsrfOptions {
 }
 
 export interface IAppConfig {
-  basePath?: string;
-  static?: string;
-  port?: number;
+
+  // required
+  csrf: ICsrfOptions | false;
   db: Knex.Config;
   migrations: IMigrationConfig;
   session: SessionOptions | false;
-  csrf: ICsrfOptions | false;
+
+  // optional
+  basePath?: string;
+  logger?: Logger;
+  port?: number;
+  serviceName?: string;
+  static?: string;
 }
