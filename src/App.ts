@@ -26,12 +26,15 @@ import { HTTPResponse, JSONResponse } from './http';
 import { RequestContext } from './RequestContext';
 import { IAppConfig, IMiddlewareFunc } from './interfaces';
 import { RouteMapper } from './routing/RouteMapper';
+import { Middleware, ReqIdMiddleware, ReqInfoLoggingMiddleware, ReqLoggerMiddleware } from './middleware';
+import logger, { Logger } from './logger';
 
 // initializes the module-alias processing with the root same as the process working directory
 initModuleAlias(process.cwd());
 
 const defaultConfig = {
   basePath: '',
+  serviceName: 'app',
   port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
 };
 
@@ -40,11 +43,12 @@ const CTX_SYMBOL = Symbol('ctx');
 export class App {
   private app: express.Application;
   private controllers: Controller[] = [];
-  private middleware: IMiddlewareFunc[] = [];
+  private middleware: Middleware[] = [];
   private exceptionHandler: ExceptionHandler;
   private routeMapper: RouteMapper;
   private connection: Connection;
   private config: IAppConfig;
+  private logger: Logger;
 
   constructor(
     app: express.Application,
@@ -53,6 +57,10 @@ export class App {
   ) {
     this.app = app;
     this.controllers = controllers || [];
+    this.logger = config.logger || logger;
+    if (config.serviceName) {
+      this.logger.setServiceLabel(config.serviceName);
+    }
     this.config = Object.assign({}, defaultConfig, config);
     this.exceptionHandler = new ExceptionHandler();
     this.routeMapper = new RouteMapper();
@@ -64,8 +72,17 @@ export class App {
   }
 
   public init(): App {
-    // wire default handling of payloads
+    this.logger.debug('App:init');
+
+    // wire default handling of payloads, req id, logging, method override
     this.withMiddleware([
+      new ReqIdMiddleware(),
+      new ReqLoggerMiddleware(),
+      new ReqInfoLoggingMiddleware(),
+      (req, res, next) => {
+        req.logger.info('msg');
+        next();
+      },
       express.json(),
       express.urlencoded({ extended: true }),
       methodOverride('_method'),
@@ -102,8 +119,11 @@ export class App {
   /**
    * Add a set of global middlewares
    */
-  public withMiddleware(middleware: IMiddlewareFunc[]): App {
-    this.middleware.push(...middleware);
+  public withMiddleware(middleware: Array<IMiddlewareFunc | Middleware>): App {
+    this.logger.debug('adding middleware');
+    this.middleware.push(...middleware.map(middleware => {
+      return middleware instanceof Middleware ? middleware : new Middleware(middleware);
+    }));
     return this;
   }
 
@@ -111,6 +131,7 @@ export class App {
    * Add a set of controllers
    */
   public withControllers(controllers: Controller[]): App {
+    this.logger.debug('adding controllers');
     this.controllers.push(...controllers);
     return this;
   }
@@ -119,6 +140,7 @@ export class App {
    * Override the default exception handler with one of your own
    */
   public withExceptionHandler(handler: ExceptionHandler): App {
+    this.logger.debug(`adding exception handler ${handler.constructor.name}`);
     this.exceptionHandler = handler;
     return this;
   }
@@ -132,7 +154,7 @@ export class App {
 
     // global middlewares
     this.middleware.forEach((middleware) => {
-      this.app.use(middleware);
+      this.app.use(middleware.bind());
     });
 
     // controllers
@@ -152,7 +174,7 @@ export class App {
 
     // attach the HTTP server to the specified port
     return this.app.listen(this.config.port, () => {
-      console.log(`app listening on ${this.config.port}`);
+      this.logger.debug(`${this.config.serviceName} listening on ${this.config.port}`);
     });
   }
 
@@ -338,8 +360,7 @@ export class App {
       const reply = controllerReponse(ctx);
       if (!(reply instanceof HTTPResponse)) {
         throw new InvalidControllerReponse(
-          `controller reponse ${typeof reply}, expected an instance of ${
-            HTTPResponse.name
+          `controller reponse ${typeof reply}, expected an instance of ${HTTPResponse.name
           }`,
         );
       }

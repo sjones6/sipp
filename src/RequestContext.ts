@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { ScopedLogger } from './logger';
 import { RouteMapper, Query } from './routing/RouteMapper';
 
 export class RequestSession {
@@ -22,6 +23,7 @@ export class RequestContext {
   public readonly body?: any;
   public readonly query?: object;
   public readonly session: RequestSession;
+  public readonly logger: ScopedLogger;
   constructor(
     public readonly req: Request,
     public readonly res: Response,
@@ -33,6 +35,7 @@ export class RequestContext {
     this.body = req.body;
     this.query = req.query;
     this.session = new RequestSession(req, res);
+    this.logger = req.logger;
   }
 
   url(name: string | Symbol, params?: object, query?: Query, method?: string) {
