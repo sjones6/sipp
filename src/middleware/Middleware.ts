@@ -1,14 +1,14 @@
 import crypto from 'crypto';
-import { NextFunction, Request, Response, } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { logger, ScopedLogger } from '../logger';
 
 declare global {
   namespace Express {
-      interface Request {
-          id: string,
-          received: Date,
-          logger: ScopedLogger
-      }
+    interface Request {
+      id: string;
+      received: Date;
+      logger: ScopedLogger;
+    }
   }
 }
 
@@ -47,7 +47,7 @@ export class ReqInfoLoggingMiddleware extends Middleware {
       req.logger.addScope({
         ip: req.ip,
         path: req.path,
-        method: req.method
+        method: req.method,
       });
       next();
     });

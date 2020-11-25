@@ -1,13 +1,13 @@
+import { Model } from '../db';
 import {
   PATH_METADATA,
   METHOD_METADATA,
   ROUTES_METADATA,
   RequestMethod,
-  PARAMETER_METADATA,
-  PARAMS,
   PATH_OPTION_METADATA,
 } from '../constants';
-import { RequestContext } from '../RequestContext';
+import { RequestContext, RequestSession } from '../RequestContext';
+import { ScopedLogger } from '../logger';
 
 interface PathOptions {
   name?: string;
@@ -23,6 +23,14 @@ const defaultMetadata = {
   [PATH_METADATA]: '/',
   [METHOD_METADATA]: RequestMethod.GET,
 };
+
+function compareClasses(type1, type2): boolean {
+  return (
+    type1 === type2 ||
+    type1.prototype instanceof type2 ||
+    type1.name === type2.name
+  );
+}
 
 export const RequestMapping = (
   metadata: RequestMappingMetadata = defaultMetadata,
@@ -42,55 +50,71 @@ export const RequestMapping = (
 
     const method = descriptor.value;
     descriptor.value = async function () {
-      const paramMetadata =
-        Reflect.getMetadata(PARAMETER_METADATA, target, key) || [];
-      if (paramMetadata.length) {
-        const realArgs = [];
-        const ctx: RequestContext = arguments[0];
-        for (let i = 0, n = paramMetadata.length; i < n; i++) {
-          const param = paramMetadata[i];
-          switch (param.key || param) {
-            case PARAMS.BODY:
-              realArgs.push(ctx.body || {});
-              break;
-            case PARAMS.CTX:
-              realArgs.push(ctx);
-              break;
-            case PARAMS.REQ:
-              realArgs.push(ctx.req);
-              break;
-            case PARAMS.REQ:
-              realArgs.push(ctx.res);
-              break;
-            case PARAMS.PARAM:
-              realArgs.push(ctx.params ? ctx.params[param.arg] : undefined);
-              break;
-            case PARAMS.HEADER:
-              const headers = ctx.req.headers;
-              realArgs.push(headers[param.arg] || undefined);
-              break;
-            case PARAMS.QUERY:
-              realArgs.push(ctx.query || {});
-              break;
-            case PARAMS.SESSION:
-              realArgs.push(ctx.session);
-              break;
-          }
-        }
-        return method.apply(this, realArgs);
+      let types = Reflect.getMetadata('design:paramtypes', target, key) || [];
+      if (!types.length) {
+        return method.apply(this, arguments);
       }
-      return method.apply(this, arguments);
+      const realArgs = [];
+      const ctx: RequestContext = arguments[0];
+      for (let i = 0, n = types.length; i < n; i++) {
+        const type = types[i];
+        switch (true) {
+          case compareClasses(type, RequestContext):
+            realArgs.push(ctx);
+            break;
+          case compareClasses(type, ScopedLogger):
+            realArgs.push(ctx.logger);
+            break;
+          case compareClasses(type, RequestSession):
+            realArgs.push(ctx.session);
+            break;
+          case type.prototype instanceof Model:
+            let model;
+            switch (requestMethod) {
+              case RequestMethod.GET:
+              case RequestMethod.PATCH:
+              case RequestMethod.PUT:
+              case RequestMethod.DELETE:
+                // look for an id in the params
+                const name = type.modelName();
+                const id = ctx.params
+                  ? ctx.params[name] || ctx.params.id
+                  : null;
+                model = await type.query().findById(id);
+              case RequestMethod.GET:
+              case RequestMethod.DELETE:
+                break;
+              case RequestMethod.POST:
+                model = new type();
+              case RequestMethod.PATCH:
+              case RequestMethod.PUT:
+              case RequestMethod.POST:
+                const fillable = type.fillable ? type.fillable() : [];
+                if (fillable.length) {
+                  Object.keys(ctx.body).forEach((key) => {
+                    if (fillable.includes(key)) {
+                      model[key] = ctx.body[key];
+                    }
+                  });
+                }
+            }
+            realArgs.push(model);
+            break;
+        }
+      }
+      return method.apply(this, realArgs);
     };
 
     Reflect.defineMetadata(ROUTES_METADATA, ROUTES, target);
-    Reflect.defineMetadata(PATH_METADATA, path, descriptor.value);
-    Reflect.defineMetadata(METHOD_METADATA, requestMethod, descriptor.value);
+    Reflect.defineMetadata(PATH_METADATA, path, target, key);
+    Reflect.defineMetadata(METHOD_METADATA, requestMethod, target, key);
 
     if (pathOptionMetadata) {
       Reflect.defineMetadata(
         PATH_OPTION_METADATA,
         pathOptionMetadata,
-        descriptor.value,
+        target,
+        key,
       );
     }
 

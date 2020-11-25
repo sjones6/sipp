@@ -9,18 +9,20 @@ export interface LoggerOpt {
 
 const defaultOptions: LoggerOpt = {
   service: 'sipp',
-}
+};
 
 export class Logger {
-
-  constructor(private readonly logger: winston.Logger, private readonly opt: LoggerOpt = defaultOptions) {
+  constructor(
+    private readonly logger: winston.Logger,
+    private readonly opt: LoggerOpt = defaultOptions,
+  ) {
     this.logger.format = this.fmt();
   }
   private fmt(): winston.Logform.Format {
     const fmtStack: winston.Logform.Format[] = [
       timestamp(),
       this.addServiceLabel(),
-      this.formatter()
+      this.formatter(),
     ];
     return combine(...fmtStack);
   }
@@ -32,26 +34,25 @@ export class Logger {
           info.svc = this.opt.service;
         }
         return info;
-      }
-    }
+      },
+    };
   }
 
   private formatter(): winston.Logform.Format {
     return {
       transform: (info) => {
-        const message = Object
-          .keys(info)
+        const message = Object.keys(info)
           .sort()
           .map((key) => {
             return `${key}="${info[key]}"`;
           })
-          .filter(x => x)
+          .filter((x) => x)
           .join(' ');
         info.message = message;
         info[MESSAGE] = message;
         return info;
-      }
-    }
+      },
+    };
   }
 
   public scopedLogger(scoping: any): ScopedLogger {
@@ -130,13 +131,21 @@ export class Logger {
 }
 
 export class ScopedLogger {
-  constructor(private readonly logger: winston.Logger, private readonly scoping: object) { }
+  constructor(
+    private readonly logger: winston.Logger,
+    private readonly scoping: object,
+  ) {}
 
   private log(level: LOG_LEVELS, message: any) {
-    return this.logger.log(Object.assign({
-      level,
-      message
-    }, this.scoping))
+    return this.logger.log(
+      Object.assign(
+        {
+          level,
+          message,
+        },
+        this.scoping,
+      ),
+    );
   }
 
   addScope(scoping: object, force?: boolean): void {
@@ -202,18 +211,25 @@ export enum LOG_LEVELS {
 export const formats = format;
 
 export const consoleTransport = new winston.transports.Console({
-  level: process.env.NODE_ENV === 'production' ? LOG_LEVELS.ERROR : LOG_LEVELS.DEBUG
+  level:
+    process.env.NODE_ENV === 'production' ? LOG_LEVELS.ERROR : LOG_LEVELS.DEBUG,
 });
 
 export const fileTransport = new winston.transports.File({
-  level: process.env.NODE_ENV === 'production' ? LOG_LEVELS.ERROR : LOG_LEVELS.DEBUG,
+  level:
+    process.env.NODE_ENV === 'production' ? LOG_LEVELS.ERROR : LOG_LEVELS.DEBUG,
   filename: join(process.cwd(), 'tmp', 'combined.log'),
 });
 
-export const logger = new Logger(winston.createLogger({
-  level: process.env.NODE_ENV === 'production' ? LOG_LEVELS.ERROR : LOG_LEVELS.DEBUG,
-  levels: winston.config.syslog.levels,
-  transports: [consoleTransport, fileTransport]
-}));
+export const logger = new Logger(
+  winston.createLogger({
+    level:
+      process.env.NODE_ENV === 'production'
+        ? LOG_LEVELS.ERROR
+        : LOG_LEVELS.DEBUG,
+    levels: winston.config.syslog.levels,
+    transports: [consoleTransport, fileTransport],
+  }),
+);
 
 export default logger;

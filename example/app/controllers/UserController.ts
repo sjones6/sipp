@@ -1,16 +1,14 @@
 import { User } from '../models/User';
 import {
   BaseException,
-  Body,
   Controller,
-  Session,
-  RequestSession,
+  Delete,
   Get,
   IHTTPResponseFacade,
+  ScopedLogger,
   NotFoundException,
-  Param,
   Post,
-  Delete,
+  RequestSession,
 } from '@src/index';
 import { UsersList, ShowUser } from './Users';
 
@@ -21,20 +19,26 @@ export class UsersController extends Controller {
   }
 
   @Post('/', { name: 'user.create' })
-  public async createUser(@Body() user, @Session() session: RequestSession) {
-    user = await User.query().insert(user);
-    session.flash('success', 'yay! you are a user');
+  public async createUser(user: User) {
+    // < user model is created just by type-hinting User
+    await user.save();
     return this.redirect(`/users/${user.id}`);
   }
 
   @Get('/:user', { name: 'get-user' })
-  public async getUser(@Param('user') id) {
-    return this.view<User>(ShowUser, await User.query().findById(id));
+  public async getUser(
+    user: User,
+    logger: ScopedLogger,
+    session: RequestSession,
+  ) {
+    logger.debug(`getting user ${user.id}`);
+    session.flash('welcome', `Hi, ${user.email}!`);
+    return this.view<User>(ShowUser, user);
   }
 
   @Delete('/:user', { name: 'delete-user' })
-  public async deleteUser(@Param('user') id) {
-    await User.query().deleteById(id);
+  public async deleteUser(user: User) {
+    const r = await user.delete();
     return this.redirect(`/users`);
   }
 

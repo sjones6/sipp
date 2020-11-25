@@ -26,7 +26,12 @@ import { HTTPResponse, JSONResponse } from './http';
 import { RequestContext } from './RequestContext';
 import { IAppConfig, IMiddlewareFunc } from './interfaces';
 import { RouteMapper } from './routing/RouteMapper';
-import { Middleware, ReqIdMiddleware, ReqInfoLoggingMiddleware, ReqLoggerMiddleware } from './middleware';
+import {
+  Middleware,
+  ReqIdMiddleware,
+  ReqInfoLoggingMiddleware,
+  ReqLoggerMiddleware,
+} from './middleware';
 import logger, { Logger } from './logger';
 
 // initializes the module-alias processing with the root same as the process working directory
@@ -121,9 +126,13 @@ export class App {
    */
   public withMiddleware(middleware: Array<IMiddlewareFunc | Middleware>): App {
     this.logger.debug('adding middleware');
-    this.middleware.push(...middleware.map(middleware => {
-      return middleware instanceof Middleware ? middleware : new Middleware(middleware);
-    }));
+    this.middleware.push(
+      ...middleware.map((middleware) => {
+        return middleware instanceof Middleware
+          ? middleware
+          : new Middleware(middleware);
+      }),
+    );
     return this;
   }
 
@@ -174,7 +183,9 @@ export class App {
 
     // attach the HTTP server to the specified port
     return this.app.listen(this.config.port, () => {
-      this.logger.debug(`${this.config.serviceName} listening on ${this.config.port}`);
+      this.logger.debug(
+        `${this.config.serviceName} listening on ${this.config.port}`,
+      );
     });
   }
 
@@ -188,15 +199,18 @@ export class App {
       for (let method in routes) {
         const pathMetadata = Reflect.getMetadata(
           PATH_METADATA,
-          controller[method],
+          controller,
+          method,
         );
         const pathOptionMetadata = Reflect.getMetadata(
           PATH_OPTION_METADATA,
-          controller[method],
+          controller,
+          method,
         );
         const methodMetadata = Reflect.getMetadata(
           METHOD_METADATA,
-          controller[method],
+          controller,
+          method,
         );
         if (methodMetadata && pathMetadata) {
           const fullPath = this.constructPath(
@@ -360,7 +374,8 @@ export class App {
       const reply = controllerReponse(ctx);
       if (!(reply instanceof HTTPResponse)) {
         throw new InvalidControllerReponse(
-          `controller reponse ${typeof reply}, expected an instance of ${HTTPResponse.name
+          `controller reponse ${typeof reply}, expected an instance of ${
+            HTTPResponse.name
           }`,
         );
       }

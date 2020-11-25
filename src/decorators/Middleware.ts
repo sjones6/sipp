@@ -12,7 +12,7 @@ export const Middleware = (
     key?: string | symbol,
     descriptor?: TypedPropertyDescriptor<any>,
   ): void {
-    Reflect.defineMetadata(MIDDLEWARE_METADATA, middleware, descriptor.value);
+    Reflect.defineMetadata(MIDDLEWARE_METADATA, middleware, target, key);
   };
 };
 

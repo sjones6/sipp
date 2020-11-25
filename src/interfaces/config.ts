@@ -22,7 +22,6 @@ interface ICsrfOptions {
 }
 
 export interface IAppConfig {
-
   // required
   csrf: ICsrfOptions | false;
   db: Knex.Config;
