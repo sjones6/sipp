@@ -3,8 +3,17 @@ import { ScopedLogger } from './logger';
 import { RouteMapper, Query } from './routing/RouteMapper';
 
 export class RequestSession {
-  constructor(private readonly req: Request, private readonly res: Response) {}
+  public readonly session: object;
 
+  constructor(private readonly req: Request, private readonly res: Response) {
+    this.session = req.session;
+  }
+  has(key: string): boolean {
+    return {}.hasOwnProperty.call(this.session, key);
+  }
+  get<T>(key: string, defaultValue: T = undefined): T | undefined {
+    return this.session[key] || defaultValue;
+  }
   getFlash(key: string): string[] {
     return this.req.flash(key);
   }
