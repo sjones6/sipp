@@ -5,19 +5,18 @@ export class HomeController extends Controller {
 
   @Get('/', { name: 'home' })
   public getHome(ctx: RequestContext) {
-    return this.json({
+    return {
       path: ctx.path,
       method: ctx.method,
       home: ctx.url('home'),
       user: ctx.url('get-user', { user: 1 }),
       flash: ctx.session.getFlash('info'),
       query: ctx.query,
-    });
+    };
   }
 
   @Get('/foo', { name: 'foo' })
-  public getFoo(ctx: RequestContext) {
-    ctx.session.flash('info', 'msg');
-    return this.redirect('/');
+  public getFoo() {
+    return this.download({ foo: 1 });
   }
 }

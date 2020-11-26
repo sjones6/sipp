@@ -39,12 +39,22 @@ export class Logger {
   }
 
   private formatter(): winston.Logform.Format {
+    function toString(val: any): string {
+      if (typeof val === 'string') {
+        return val;
+      }
+      if (typeof val.toString === 'function') {
+        return JSON.stringify(val);
+      }
+      return 'undefined';
+    }
+
     return {
       transform: (info) => {
         const message = Object.keys(info)
           .sort()
           .map((key) => {
-            return `${key}="${info[key]}"`;
+            return `${key}="${toString(info[key])}"`;
           })
           .filter((x) => x)
           .join(' ');

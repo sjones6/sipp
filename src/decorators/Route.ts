@@ -8,6 +8,7 @@ import {
 } from '../constants';
 import { RequestContext, RequestSession } from '../RequestContext';
 import { ScopedLogger } from '../logger';
+import { ClientRequest, ServerResponse } from 'http';
 
 interface PathOptions {
   name?: string;
@@ -67,6 +68,12 @@ export const RequestMapping = (
             break;
           case compareClasses(type, RequestSession):
             realArgs.push(ctx.session);
+            break;
+          case compareClasses(type, ClientRequest):
+            realArgs.push(ctx.req);
+            break;
+          case compareClasses(type, ServerResponse):
+            realArgs.push(ctx.res);
             break;
           case type.prototype instanceof Model:
             let model;

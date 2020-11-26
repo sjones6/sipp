@@ -4,23 +4,23 @@ import {
   Controller,
   Delete,
   Get,
-  IHTTPResponseFacade,
+  ResponseBody,
   ScopedLogger,
   NotFoundException,
   Post,
   RequestSession,
+  RequestContext,
 } from '@src/index';
 import { UsersList, ShowUser } from './Users';
 
 export class UsersController extends Controller {
   @Get()
-  public async listUsers(): Promise<any> {
-    return this.view<User[]>(UsersList, await User.query());
+  public async listUsers(ctx: RequestContext): Promise<string> {
+    return UsersList(await User.query(), ctx);
   }
 
   @Post('/', { name: 'user.create' })
   public async createUser(user: User) {
-    // < user model is created just by type-hinting User
     await user.save();
     return this.redirect(`/users/${user.id}`);
   }
@@ -30,22 +30,28 @@ export class UsersController extends Controller {
     user: User,
     logger: ScopedLogger,
     session: RequestSession,
+    ctx: RequestContext,
   ) {
     logger.debug(`getting user ${user.id}`);
     session.flash('welcome', `Hi, ${user.email}!`);
-    return this.view<User>(ShowUser, user);
+    return ShowUser(user, ctx);
+  }
+
+  @Get('/:user/download', { name: 'download-user' })
+  public async downloadUser(user: User) {
+    return this.download(user, `${user.email}.json`);
   }
 
   @Delete('/:user', { name: 'delete-user' })
   public async deleteUser(user: User) {
-    const r = await user.delete();
+    await user.delete();
     return this.redirect(`/users`);
   }
 
-  onException(e: BaseException): boolean | IHTTPResponseFacade {
+  onException(e: BaseException): false | ResponseBody {
     switch (true) {
       case e instanceof NotFoundException:
-        return this.json({ lost: true });
+        return { lost: true };
     }
     return false;
   }

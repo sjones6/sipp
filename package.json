@@ -51,6 +51,7 @@
     "express-session": "^1.17.1",
     "knex": "^0.21.12",
     "method-override": "^3.0.0",
+    "mime-types": "^2.1.27",
     "module-alias": "^2.2.2",
     "objection": "^2.2.3",
     "query-string": "^6.13.7",

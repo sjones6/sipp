@@ -21,8 +21,13 @@ import {
   ExceptionHandler,
   NotFoundException,
 } from './exceptions';
-import { InvalidControllerReponse } from './exceptions/RuntimeException';
-import { HTTPResponse, JSONResponse } from './http';
+import {
+  DownloadResponse,
+  HTMLResponse,
+  HTTPResponse,
+  JSONResponse,
+  NoContentResponse,
+} from './http';
 import { RequestContext } from './RequestContext';
 import { IAppConfig, IMiddlewareFunc } from './interfaces';
 import { RouteMapper } from './routing/RouteMapper';
@@ -33,6 +38,7 @@ import {
   ReqLoggerMiddleware,
 } from './middleware';
 import logger, { Logger } from './logger';
+import { Download } from './http/download';
 
 // initializes the module-alias processing with the root same as the process working directory
 initModuleAlias(process.cwd());
@@ -319,11 +325,6 @@ export class App {
           }
         }),
       )
-        .then(() => {
-          if (!req.headersSent) {
-            next();
-          }
-        })
         .catch((err) => {
           const controllerReponse = controller.onException(
             BaseException.toException(err),
@@ -348,45 +349,35 @@ export class App {
     controllerReponse,
     ctx: RequestContext,
   ): void {
-    const reply: HTTPResponse = this.resolveControllerResponse(
-      ctx,
+    const reply: HTTPResponse<any> = this.resolveControllerResponse(
       controllerReponse,
     );
-    if (reply instanceof HTTPResponse) {
-      reply.handle();
-    } else {
-      throw new InvalidControllerReponse(
-        `controller reponse ${typeof reply} invalid`,
-      );
-    }
+    reply.handle(ctx);
   }
 
-  private resolveControllerResponse(
-    ctx: RequestContext,
-    controllerReponse: any,
-  ): HTTPResponse {
+  private resolveControllerResponse(controllerReponse: any): HTTPResponse<any> {
+
+    // theoretically possible to return a HTTPResponse object from the controller. No need to coerce
     if (controllerReponse instanceof HTTPResponse) {
       return controllerReponse;
     }
 
-    // usually a factory facade that returns a HTTPResponse
-    if (typeof controllerReponse === 'function') {
-      const reply = controllerReponse(ctx);
-      if (!(reply instanceof HTTPResponse)) {
-        throw new InvalidControllerReponse(
-          `controller reponse ${typeof reply}, expected an instance of ${
-            HTTPResponse.name
-          }`,
-        );
-      }
-      return reply;
-    }
-
-    switch (typeof controllerReponse) {
-      case 'object':
-        return new JSONResponse(ctx, controllerReponse);
+    switch (true) {
+      case controllerReponse == null: // null or undefined
+        return new NoContentResponse();
+      case controllerReponse instanceof Download:
+        return new DownloadResponse(controllerReponse);
+      case typeof controllerReponse === 'string': // either html or plain text
+      case controllerReponse instanceof String:
+        return controllerReponse.startsWith('<') &&
+          controllerReponse.endsWith('>')
+          ? new HTMLResponse(controllerReponse)
+          : new HTTPResponse(controllerReponse);
+      case typeof controllerReponse == 'object': // json
+      case Array.isArray(controllerReponse):
+        return new JSONResponse(controllerReponse);
       default:
-        return new HTTPResponse(ctx, controllerReponse);
+        return new HTTPResponse(controllerReponse);
     }
   }
 }
