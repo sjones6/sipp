@@ -13,6 +13,7 @@ import {
   Query,
   Headers,
   Params,
+  Old,
 } from '../http';
 import { Logger } from '../logger';
 
@@ -83,6 +84,9 @@ export const RequestMapping = (
             break;
           case compareClasses(type, Logger):
             realArgs.push(ctx.logger);
+            break;
+          case compareClasses(type, Old):
+            realArgs.push(ctx.old);
             break;
           case compareClasses(type, RequestSession):
             realArgs.push(ctx.session);
