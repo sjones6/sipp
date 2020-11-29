@@ -1,7 +1,11 @@
 import { BaseException } from './exceptions';
-import { HTTPRedirect, ResponseBody } from './http';
-import { Download, Downloadable } from './http/download';
-import { RequestContext } from './RequestContext';
+import {
+  Download,
+  Downloadable,
+  RequestContext,
+  HTTPRedirect,
+  ResponseBody,
+} from './http';
 import { ReadStream } from 'fs';
 
 export class Controller {
@@ -34,7 +38,7 @@ export class Controller {
 
   /**
    * Return a redirect response
-   * 
+   *
    * @param path    path to which to redirect
    * @param status  status code
    */
@@ -44,7 +48,7 @@ export class Controller {
 
   /**
    * Return a file download response
-   * 
+   *
    * @param download a downloadable asset
    * @param mimetype mimetype for the download
    * @param fileName filename for the download

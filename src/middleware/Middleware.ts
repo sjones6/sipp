@@ -1,13 +1,13 @@
 import crypto from 'crypto';
 import { NextFunction, Request, Response } from 'express';
-import { logger, ScopedLogger } from '../logger';
+import { logger, Logger } from '../logger';
 
 declare global {
   namespace Express {
     interface Request {
       id: string;
       received: Date;
-      logger: ScopedLogger;
+      logger: Logger;
     }
   }
 }
@@ -35,7 +35,7 @@ export class ReqIdMiddleware extends Middleware {
 export class ReqLoggerMiddleware extends Middleware {
   constructor() {
     super((req: Request, res: Response, next: NextFunction) => {
-      req.logger = logger.scopedLogger({ req: req.id });
+      req.logger = logger.childLogger({ req: req.id });
       next();
     });
   }

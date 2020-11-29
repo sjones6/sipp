@@ -22,13 +22,13 @@ import {
   NotFoundException,
 } from './exceptions';
 import {
+  RequestContext,
   DownloadResponse,
   HTMLResponse,
   HTTPResponse,
   JSONResponse,
   NoContentResponse,
 } from './http';
-import { RequestContext } from './RequestContext';
 import { IAppConfig, IMiddlewareFunc } from './interfaces';
 import { RouteMapper } from './routing/RouteMapper';
 import {
@@ -38,7 +38,7 @@ import {
   ReqLoggerMiddleware,
 } from './middleware';
 import logger, { Logger } from './logger';
-import { Download } from './http/download';
+import { Download } from './http/response/download';
 
 // initializes the module-alias processing with the root same as the process working directory
 initModuleAlias(process.cwd());
@@ -90,10 +90,6 @@ export class App {
       new ReqIdMiddleware(),
       new ReqLoggerMiddleware(),
       new ReqInfoLoggingMiddleware(),
-      (req, res, next) => {
-        req.logger.info('msg');
-        next();
-      },
       express.json(),
       express.urlencoded({ extended: true }),
       methodOverride('_method'),
@@ -250,7 +246,9 @@ export class App {
                 async (req: Request, res: Response) => {
                   const ctx = this.createRequestContext(req, res);
                   const controllerReponse = await controller[method](ctx);
-                  this.handleControllerResponse(controllerReponse, ctx);
+                  if (!res.headersSent) {
+                    this.handleControllerResponse(controllerReponse, ctx);
+                  }
                 },
               ]
                 .filter(Boolean)
@@ -324,24 +322,23 @@ export class App {
             middlewareRes.then(resolve).catch(reject);
           }
         }),
-      )
-        .catch((err) => {
-          const controllerReponse = controller.onException(
-            BaseException.toException(err),
-            req[CTX_SYMBOL],
-          );
-          if (typeof controllerReponse === 'boolean' && !controllerReponse) {
-            // the controller didn't handle the error so throw down the error chain
+      ).catch((err) => {
+        const controllerReponse = controller.onException(
+          BaseException.toException(err),
+          req[CTX_SYMBOL],
+        );
+        if (typeof controllerReponse === 'boolean' && !controllerReponse) {
+          // the controller didn't handle the error so throw down the error chain
+          next(err);
+        } else {
+          try {
+            // controller returned a _non_ boolean response which is expected to be a HttpResponse factory
+            this.handleControllerResponse(controllerReponse, req[CTX_SYMBOL]);
+          } catch (err) {
             next(err);
-          } else {
-            try {
-              // controller returned a _non_ boolean response which is expected to be a HttpResponse factory
-              this.handleControllerResponse(controllerReponse, req[CTX_SYMBOL]);
-            } catch (err) {
-              next(err);
-            }
           }
-        });
+        }
+      });
     };
   }
 
@@ -356,7 +353,6 @@ export class App {
   }
 
   private resolveControllerResponse(controllerReponse: any): HTTPResponse<any> {
-
     // theoretically possible to return a HTTPResponse object from the controller. No need to coerce
     if (controllerReponse instanceof HTTPResponse) {
       return controllerReponse;

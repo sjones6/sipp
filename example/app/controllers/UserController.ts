@@ -5,7 +5,7 @@ import {
   Delete,
   Get,
   ResponseBody,
-  ScopedLogger,
+  Logger,
   NotFoundException,
   Post,
   RequestSession,
@@ -28,7 +28,7 @@ export class UsersController extends Controller {
   @Get('/:user', { name: 'get-user' })
   public async getUser(
     user: User,
-    logger: ScopedLogger,
+    logger: Logger,
     session: RequestSession,
     ctx: RequestContext,
   ) {

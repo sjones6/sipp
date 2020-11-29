@@ -1,6 +1,6 @@
 import queryString, { StringifiableRecord } from 'query-string';
 
-export interface Query extends StringifiableRecord {
+export interface IQuery extends StringifiableRecord {
   _method?: string;
 }
 
@@ -24,7 +24,7 @@ export class RouteMapper {
   public resolve(
     name: string | Symbol,
     params?: object,
-    query?: Query,
+    query?: IQuery,
     method?: string,
   ): string {
     if (!this.aliasMap.has(name)) {

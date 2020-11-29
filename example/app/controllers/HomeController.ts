@@ -5,9 +5,10 @@ export class HomeController extends Controller {
 
   @Get('/', { name: 'home' })
   public getHome(ctx: RequestContext) {
+    const { req } = ctx;
     return {
-      path: ctx.path,
-      method: ctx.method,
+      path: req.path,
+      method: req.method,
       home: ctx.url('home'),
       user: ctx.url('get-user', { user: 1 }),
       flash: ctx.session.getFlash('info'),

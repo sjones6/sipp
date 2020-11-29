@@ -1,5 +1,5 @@
 import { BaseException } from './BaseException';
-import { RequestContext } from '../RequestContext';
+import { RequestContext } from '../http';
 import { exceptionView } from './exception';
 
 export class ExceptionHandler {
