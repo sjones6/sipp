@@ -34,6 +34,9 @@ export const h = (tagName: Function | string, props?: object, ...children) => {
   if (props) {
     stringifiedProps = Object.entries(props)
       .map(([key, value]) => {
+        if (value != null) {
+          return '';
+        }
         if (value && typeof value.toString === 'function') {
           return `${key}="${value.toString()}"`;
         }
