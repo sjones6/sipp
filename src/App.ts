@@ -100,6 +100,10 @@ export class App {
       this.withMiddleware([express.static(this.config.static)]);
     }
 
+    if (this.config.session !== false) {
+      this.withMiddleware([session(this.config.session), flash()]);
+    }
+
     if (this.config.csrf !== false) {
       if (this.config.csrf.cookie) {
         this.withMiddleware([cookieParser()]);
@@ -114,10 +118,6 @@ export class App {
           next();
         },
       ]);
-    }
-
-    if (this.config.session !== false) {
-      this.withMiddleware([session(this.config.session), flash()]);
     }
 
     return this;
@@ -232,7 +232,8 @@ export class App {
           );
           const methodMiddleware = Reflect.getMetadata(
             MIDDLEWARE_METADATA,
-            controller[method],
+            controller,
+            method
           );
 
           // apply the method to the express application
@@ -252,6 +253,9 @@ export class App {
                 },
               ]
                 .filter(Boolean)
+                .map((middleware) => {
+                  return middleware instanceof Middleware ? middleware : new Middleware(middleware);
+                })
                 .map((fn) => this.wrapMiddlewareAndHandleErr(fn, controller)),
             ].filter(Boolean),
           );
@@ -311,11 +315,11 @@ export class App {
     return true;
   }
 
-  private wrapMiddlewareAndHandleErr(middleware, controller: Controller) {
+  private wrapMiddlewareAndHandleErr(middleware: Middleware, controller: Controller) {
     return (req, res, next) => {
       Promise.resolve(
         new Promise(async (resolve, reject) => {
-          const middlewareRes = middleware(req, res, (err) => {
+          const middlewareRes = middleware.bind()(req, res, (err) => {
             err ? resolve() : reject(err);
           });
           if (middlewareRes instanceof Promise) {

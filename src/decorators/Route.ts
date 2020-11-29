@@ -116,7 +116,7 @@ export const RequestMapping = (
                 if (fillable.length) {
                   Object.keys(ctx.body).forEach((key) => {
                     if (fillable.includes(key)) {
-                      model[key] = ctx.body[key];
+                      model[key] = ctx.body.get(key);
                     }
                   });
                 }
