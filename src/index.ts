@@ -10,3 +10,4 @@ export * from './jsx';
 export * from './http';
 export * from './logger';
 export * from './http';
+export * from './middleware';
