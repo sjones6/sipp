@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import session from 'express-session';
 import { Logger } from '../../logger';
 import { RouteMapper, IQuery } from '../../routing/RouteMapper';
 
@@ -27,7 +28,7 @@ export class Query extends ObjectMapper {};
 export class Old extends ObjectMapper {};
 
 export class RequestSession {
-  public readonly session: object;
+  public readonly session: session.SessionData;
 
   constructor(private readonly req: Request) {
     this.session = req.session;
