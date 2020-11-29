@@ -6,8 +6,15 @@ import {
   RequestMethod,
   PATH_OPTION_METADATA,
 } from '../constants';
-import { RequestContext, RequestSession } from '../RequestContext';
-import { ScopedLogger } from '../logger';
+import {
+  RequestContext,
+  RequestSession,
+  Body,
+  Query,
+  Headers,
+  Params,
+} from '../http';
+import { Logger } from '../logger';
 
 interface PathOptions {
   name?: string;
@@ -59,10 +66,22 @@ export const RequestMapping = (
       for (let i = 0, n = types.length; i < n; i++) {
         const type = types[i];
         switch (true) {
+          case compareClasses(type, Body):
+            realArgs.push(ctx.body);
+            break;
+          case compareClasses(type, Params):
+            realArgs.push(ctx.params);
+            break;
+          case compareClasses(type, Query):
+            realArgs.push(ctx.query);
+            break;
+          case compareClasses(type, Headers):
+            realArgs.push(ctx.headers);
+            break;
           case compareClasses(type, RequestContext):
             realArgs.push(ctx);
             break;
-          case compareClasses(type, ScopedLogger):
+          case compareClasses(type, Logger):
             realArgs.push(ctx.logger);
             break;
           case compareClasses(type, RequestSession):
@@ -77,8 +96,8 @@ export const RequestMapping = (
               case RequestMethod.DELETE:
                 // look for an id in the params
                 const name = type.modelName();
-                const id = ctx.params
-                  ? ctx.params[name] || ctx.params.id
+                const id = ctx.params.has(name)
+                  ? ctx.params.get(name) || ctx.params.get('id')
                   : null;
                 model = await type.query().findById(id);
               case RequestMethod.GET:

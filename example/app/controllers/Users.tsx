@@ -42,6 +42,7 @@ export function UsersList(users: User[], ctx: RequestContext) {
           );
         })}
       </ul>
+      <a href={ctx.url('foo')}>Download Foo</a>
     </div>
   );
 }
@@ -54,6 +55,7 @@ export function ShowUser(user: User, ctx: RequestContext) {
       ))}
       <a href="/users">List Users</a>
       <h1>{user.email}</h1>
+      <a href={ctx.url('download-user', { user: user.id })}>Download</a>
     </div>
   );
 }

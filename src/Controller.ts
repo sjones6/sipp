@@ -1,16 +1,15 @@
 import { BaseException } from './exceptions';
-import { IHTTPResponseFacade } from './interfaces';
-import { view, json, text, redirect } from './facades';
-import { RequestContext } from './RequestContext';
+import {
+  Download,
+  Downloadable,
+  RequestContext,
+  HTTPRedirect,
+  ResponseBody,
+} from './http';
+import { ReadStream } from 'fs';
 
 export class Controller {
   public readonly basePath: string | null = null;
-
-  /* expose response facades as properties */
-  protected readonly view = view;
-  protected readonly json = json;
-  protected readonly text = text;
-  protected readonly redirect = redirect;
 
   public getBasePath(): string {
     const standardize = (path) =>
@@ -28,12 +27,37 @@ export class Controller {
   }
 
   /**
-   * a generic exception handle for the controller
+   * Handle errors thrown when the controller is handling requests
    */
-  onException(
+  public onException(
     e: BaseException,
     ctx: RequestContext,
-  ): Boolean | IHTTPResponseFacade {
+  ): false | ResponseBody {
     return false;
+  }
+
+  /**
+   * Return a redirect response
+   *
+   * @param path    path to which to redirect
+   * @param status  status code
+   */
+  protected redirect(path: string, status: 302 | 301 = 302): HTTPRedirect {
+    return new HTTPRedirect(path, status);
+  }
+
+  /**
+   * Return a file download response
+   *
+   * @param download a downloadable asset
+   * @param mimetype mimetype for the download
+   * @param fileName filename for the download
+   */
+  protected download(
+    download: Downloadable,
+    fileName?: string,
+    mimetype?: string,
+  ): Download<string | ReadStream | Buffer> {
+    return Download.from(download, mimetype, fileName);
   }
 }
