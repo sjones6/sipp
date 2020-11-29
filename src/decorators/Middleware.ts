@@ -4,7 +4,7 @@ import {
   MIDDLEWARE_METADATA,
 } from '../constants';
 
-export const Middleware = (
+export const Apply = (
   ...middleware: IMiddlewareFunc[]
 ): MethodDecorator => {
   return function (
