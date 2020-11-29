@@ -3,7 +3,7 @@ import { Logger } from '../../logger';
 import { RouteMapper, IQuery } from '../../routing/RouteMapper';
 
 class ObjectMapper {
-  private _raw: any;
+  private _raw: object;
   private map: Map<string, any>;
   constructor(obj: object) {
     this.map = new Map(Object.entries(obj));
@@ -12,23 +12,24 @@ class ObjectMapper {
   public has(key: string): boolean {
     return this.map.has(key);
   }
-  public get(key: string): any {
-    return this.map.get(key);
+  public get<T>(key: string, defaultValue?: T): T {
+    return this.map.has(key) ? this.map.get(key) : defaultValue;
   }
-  public raw() {
+  public raw(): object {
     return this._raw;
   }
 }
 
-export class Body extends ObjectMapper {}
-export class Headers extends ObjectMapper {}
-export class Params extends ObjectMapper {}
-export class Query extends ObjectMapper {}
+export class Body extends ObjectMapper {};
+export class Headers extends ObjectMapper {};
+export class Params extends ObjectMapper {};
+export class Query extends ObjectMapper {};
+export class Old extends ObjectMapper {};
 
 export class RequestSession {
   public readonly session: object;
 
-  constructor(private readonly req: Request, private readonly res: Response) {
+  constructor(private readonly req: Request) {
     this.session = req.session;
   }
   has(key: string): boolean {
@@ -49,6 +50,7 @@ export class RequestSession {
   reflash(key: string) {
     this.req.flash(key, this.req.flash(key));
   }
+
 }
 
 export class RequestContext {
@@ -57,6 +59,7 @@ export class RequestContext {
   public readonly logger: Logger;
   public readonly method: string;
   public readonly params: Params;
+  public readonly old: Old;
   public readonly path: string;
   public readonly query: Query;
   public readonly session: RequestSession;
@@ -71,8 +74,23 @@ export class RequestContext {
     this.body = new Body(req.body || {});
     this.query = new Query(req.query || {});
     this.headers = new Headers(req.headers);
-    this.session = new RequestSession(req, res);
+    this.session = new RequestSession(req);
     this.logger = req.logger;
+
+    // get old input
+    const [oldInput] = this.session.getFlash('__old__');
+    let old;
+    if (oldInput) {
+       try {
+        old = new Old(JSON.parse(oldInput));
+       } catch (err) {
+         this.logger.debug('failed to parse old input');
+       }
+    }
+    this.old = old || new Old({});
+
+    // save body for next req
+    this.session.flash('__old__', JSON.stringify(req.body));
   }
 
   url(name: string | Symbol, params?: object, query?: IQuery, method?: string) {
@@ -85,5 +103,10 @@ export class RequestContext {
 
   csrfField() {
     return `<input type="hidden" style="display: none; tab-index: -1;" value="${this.csrfToken()}" name="_csrf" />`;
+  }
+
+  back() {
+    this.session.flash('__old__', JSON.stringify(this.body.raw()));
+    this.res.redirect(302, this.req.get('Referrer'));
   }
 }
