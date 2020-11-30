@@ -149,7 +149,7 @@ export class Logger {
       if (typeof val === 'string') {
         return val;
       }
-      if (typeof val.toString === 'function') {
+      if (val && typeof val.toString === 'function') {
         return JSON.stringify(val);
       }
       return 'undefined';

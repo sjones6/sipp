@@ -13,6 +13,7 @@ export class HomeController extends Controller {
       user: ctx.url('get-user', { user: 1 }),
       flash: ctx.session.getFlash('info'),
       query: ctx.query,
+      ts: Date.now(),
     };
   }
 

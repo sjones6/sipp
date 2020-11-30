@@ -21,11 +21,11 @@ class ObjectMapper {
   }
 }
 
-export class Body extends ObjectMapper {};
-export class Headers extends ObjectMapper {};
-export class Params extends ObjectMapper {};
-export class Query extends ObjectMapper {};
-export class Old extends ObjectMapper {};
+export class Body extends ObjectMapper {}
+export class Headers extends ObjectMapper {}
+export class Params extends ObjectMapper {}
+export class Query extends ObjectMapper {}
+export class Old extends ObjectMapper {}
 
 export class RequestSession {
   public readonly session: session.SessionData;
@@ -51,7 +51,6 @@ export class RequestSession {
   reflash(key: string) {
     this.req.flash(key, this.req.flash(key));
   }
-
 }
 
 export class RequestContext {
@@ -82,16 +81,18 @@ export class RequestContext {
     const [oldInput] = this.session.getFlash('__old__');
     let old;
     if (oldInput) {
-       try {
+      try {
         old = new Old(JSON.parse(oldInput));
-       } catch (err) {
-         this.logger.debug('failed to parse old input');
-       }
+      } catch (err) {
+        this.logger.debug('failed to parse old input');
+      }
     }
     this.old = old || new Old({});
 
     // save body for next req
-    this.session.flash('__old__', JSON.stringify(req.body));
+    if (this.session.flash) {
+      this.session.flash('__old__', JSON.stringify(req.body));
+    }
   }
 
   url(name: string | Symbol, params?: object, query?: IQuery, method?: string) {

@@ -3,10 +3,9 @@ import {
   CONTROLLER_MIDDLEWARE_METADATA,
   MIDDLEWARE_METADATA,
 } from '../constants';
-import { Middleware } from '../middleware';
 
 export const Apply = (
-  ...middleware: Array<IMiddlewareFunc | Middleware>
+  ...middleware: Array<IMiddlewareFunc>
 ): MethodDecorator => {
   return function (
     target: object | Function,
@@ -18,7 +17,7 @@ export const Apply = (
 };
 
 export const ApplyAll = (
-  ...middleware: Array<IMiddlewareFunc | Middleware>
+  ...middleware: Array<IMiddlewareFunc>
 ): ClassDecorator => {
   return function (constructor: Function): void {
     Reflect.defineMetadata(

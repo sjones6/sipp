@@ -22,6 +22,7 @@ import {
   NotFoundException,
 } from './exceptions';
 import {
+  reqInfoLoggingMiddleware,
   RequestContext,
   DownloadResponse,
   HTMLResponse,
@@ -29,14 +30,8 @@ import {
   JSONResponse,
   NoContentResponse,
 } from './http';
-import { IAppConfig, IMiddlewareFunc } from './interfaces';
+import { IAppConfig, IMiddlewareFunc, ISippNextFunc } from './interfaces';
 import { RouteMapper } from './routing/RouteMapper';
-import {
-  Middleware,
-  ReqIdMiddleware,
-  ReqInfoLoggingMiddleware,
-  ReqLoggerMiddleware,
-} from './middleware';
 import logger, { Logger } from './logger';
 import { Download } from './http/response/download';
 
@@ -54,7 +49,8 @@ const CTX_SYMBOL = Symbol('ctx');
 export class App {
   private app: express.Application;
   private controllers: Controller[] = [];
-  private middleware: Middleware[] = [];
+  private globalMiddleware: IMiddlewareFunc[] = [];
+  private middleware: IMiddlewareFunc[] = [];
   private exceptionHandler: ExceptionHandler;
   private routeMapper: RouteMapper;
   private connection: Connection;
@@ -73,7 +69,7 @@ export class App {
       this.logger.setServiceLabel(config.serviceName);
     }
     this.config = Object.assign({}, defaultConfig, config);
-    this.exceptionHandler = new ExceptionHandler();
+    this.exceptionHandler = new ExceptionHandler(this.logger);
     this.routeMapper = new RouteMapper();
     this.connection = new Connection(this.config);
   }
@@ -86,38 +82,35 @@ export class App {
     this.logger.debug('App:init');
 
     // wire default handling of payloads, req id, logging, method override
-    this.withMiddleware([
-      new ReqIdMiddleware(),
-      new ReqLoggerMiddleware(),
-      new ReqInfoLoggingMiddleware(),
+    this.withGlobalMiddleware(
+      reqInfoLoggingMiddleware,
       express.json(),
       express.urlencoded({ extended: true }),
       methodOverride('_method'),
-    ]);
+    );
 
     // wire static file serving
     if (this.config.static) {
-      this.withMiddleware([express.static(this.config.static)]);
+      this.withGlobalMiddleware(express.static(this.config.static));
     }
 
     if (this.config.session !== false) {
-      this.withMiddleware([session(this.config.session), flash()]);
+      this.withGlobalMiddleware(session(this.config.session), flash());
     }
 
     if (this.config.csrf !== false) {
       if (this.config.csrf.cookie) {
-        this.withMiddleware([cookieParser()]);
+        this.withGlobalMiddleware(cookieParser());
       }
-      this.withMiddleware([
-        csurf(this.config.csrf),
-        (req, res, next) => {
-          if (req.body && req.body._csrf) {
-            req.headers['csrf-token'] = req.body._csrf;
-            delete req.body._csrf;
-          }
-          next();
-        },
-      ]);
+
+      // todo: move csrf middleware
+      this.withMiddleware(csurf(this.config.csrf), (req, res, next) => {
+        if (req.body && req.body._csrf) {
+          req.headers['csrf-token'] = req.body._csrf;
+          delete req.body._csrf;
+        }
+        next();
+      });
     }
 
     return this;
@@ -126,22 +119,28 @@ export class App {
   /**
    * Add a set of global middlewares
    */
-  public withMiddleware(middleware: Array<IMiddlewareFunc | Middleware>): App {
+  public withMiddleware(...middleware: Array<IMiddlewareFunc>): App {
     this.logger.debug('adding middleware');
-    this.middleware.push(
-      ...middleware.map((middleware) => {
-        return middleware instanceof Middleware
-          ? middleware
-          : new Middleware(middleware);
-      }),
-    );
+    this.middleware.push(...middleware);
+    return this;
+  }
+
+  /**
+   * Add a set of global middlewares
+   *
+   * Global middleware do not report errors to controller
+   * exception handlers
+   */
+  public withGlobalMiddleware(...middleware: Array<IMiddlewareFunc>): App {
+    this.logger.debug('adding global middleware');
+    this.globalMiddleware.push(...middleware);
     return this;
   }
 
   /**
    * Add a set of controllers
    */
-  public withControllers(controllers: Controller[]): App {
+  public withControllers(...controllers: Controller[]): App {
     this.logger.debug('adding controllers');
     this.controllers.push(...controllers);
     return this;
@@ -164,9 +163,9 @@ export class App {
     this.connection.connect();
 
     // global middlewares
-    this.middleware.forEach((middleware) => {
-      this.app.use(middleware.bind());
-    });
+    this.app.use(
+      this.wrapMiddlewareAndHandleErr(undefined, ...this.globalMiddleware),
+    );
 
     // controllers
     this.registerControllers();
@@ -179,7 +178,7 @@ export class App {
     // error handler
     this.app.use(
       (err: Error, req: Request, res: Response, next: NextFunction) => {
-        this.onException(err, req, res, next);
+        this.onException(err, this.createRequestContext(req, res), next);
       },
     );
 
@@ -233,32 +232,26 @@ export class App {
           const methodMiddleware = Reflect.getMetadata(
             MIDDLEWARE_METADATA,
             controller,
-            method
+            method,
           );
 
           // apply the method to the express application
-          this.app[methodMetadata].apply(
-            this.app,
-            [
-              fullPath,
-              ...[
-                ...(controllerMiddleware || []), // controller middleware
-                ...(methodMiddleware || []), // method handler middleware
-                async (req: Request, res: Response) => {
-                  const ctx = this.createRequestContext(req, res);
-                  const controllerReponse = await controller[method](ctx);
-                  if (!res.headersSent) {
-                    this.handleControllerResponse(controllerReponse, ctx);
-                  }
-                },
-              ]
-                .filter(Boolean)
-                .map((middleware) => {
-                  return middleware instanceof Middleware ? middleware : new Middleware(middleware);
-                })
-                .map((fn) => this.wrapMiddlewareAndHandleErr(fn, controller)),
-            ].filter(Boolean),
-          );
+          this.app[methodMetadata].apply(this.app, [
+            fullPath,
+            this.wrapMiddlewareAndHandleErr(
+              controller,
+              ...(this.middleware || []),
+              ...(controllerMiddleware || []), // controller middleware
+              ...(methodMiddleware || []), // method handler middleware
+              async (req: Request, res: Response) => {
+                const ctx = this.createRequestContext(req, res);
+                const controllerReponse = await controller[method](ctx);
+                if (!res.headersSent) {
+                  this.handleControllerResponse(controllerReponse, ctx);
+                }
+              },
+            ),
+          ]);
         }
       }
     });
@@ -299,49 +292,117 @@ export class App {
    */
   private onException(
     err: Error | BaseException,
-    req: Request,
-    res: Response,
+    ctx: RequestContext,
     next: NextFunction,
-  ): boolean {
-    if (
-      !this.exceptionHandler.handle(
-        BaseException.toException(err),
-        this.createRequestContext(req, res),
-      )
-    ) {
-      next(err);
-      return false;
+    controller?: Controller,
+  ) {
+    const exception = BaseException.toException(err);
+
+    let handled = false;
+    if (controller) {
+      try {
+        const controllerReponse =
+          controller && controller.onException(exception, ctx);
+        if (controllerReponse !== false) {
+          this.handleControllerResponse(controllerReponse, ctx);
+          handled = true;
+        }
+      } catch (err) {
+        ctx.logger.error(
+          `${controller.constructor.name} threw handling error, ${err.message}`,
+        );
+      }
     }
-    return true;
+
+    if (handled) {
+      // the controller exception handling handled it
+      try {
+        this.exceptionHandler.reportHandledException(exception);
+      } catch (err) {
+        const logger = ctx.logger || this.logger;
+        logger.error(
+          `exception handler threw reporting handled exception, ${err.message}`,
+        );
+      }
+    } else {
+      // the application level exception handler should do it
+      if (
+        !this.exceptionHandler.handle(exception, ctx) ||
+        !ctx.res.headersSent
+      ) {
+        try {
+          this.exceptionHandler.reportUnhandledException(exception);
+        } catch (err) {
+          const logger = ctx.logger || this.logger;
+          logger.error(
+            `exception handler threw reporting unhandled exception, ${err.message}`,
+          );
+        }
+        next(exception);
+      }
+    }
   }
 
-  private wrapMiddlewareAndHandleErr(middleware: Middleware, controller: Controller) {
-    return (req, res, next) => {
-      Promise.resolve(
-        new Promise(async (resolve, reject) => {
-          const middlewareRes = middleware.bind()(req, res, (err) => {
-            err ? resolve() : reject(err);
-          });
-          if (middlewareRes instanceof Promise) {
-            middlewareRes.then(resolve).catch(reject);
+  private wrapMiddlewareAndHandleErr(
+    controller: Controller | undefined,
+    ...middleware: IMiddlewareFunc[]
+  ): IMiddlewareFunc {
+    return (req: Request, res: Response, next: NextFunction) => {
+      const fn = middleware.reduceRight(
+        (nextFn: ISippNextFunc, currentMiddlewareFn: IMiddlewareFunc) => {
+          const expectsNext = currentMiddlewareFn.length === 3;
+
+          // if the heads have already been sent- don't keep processing middleware
+          if (res.headersSent) {
+            nextFn();
           }
-        }),
-      ).catch((err) => {
-        const controllerReponse = controller.onException(
-          BaseException.toException(err),
-          req[CTX_SYMBOL],
+
+          // synchronous/promise-ified middleware
+          if (!expectsNext) {
+            return () => {
+              return Promise.resolve(
+                currentMiddlewareFn(req, res, nextFn),
+              ).then(() => nextFn());
+            };
+          }
+
+          // promise-ified express / callback styles middleware
+          return () => {
+            let isNextCalled = false;
+            return new Promise((resolve, reject) => {
+              Promise.resolve(
+                currentMiddlewareFn(req, res, (err) => {
+                  if (isNextCalled) {
+                    return;
+                  }
+                  isNextCalled = true;
+                  return err
+                    ? reject(err)
+                    : Promise.resolve(nextFn()).then(resolve);
+                }),
+              );
+            }).then(() => {
+              if (!isNextCalled) {
+                return nextFn();
+              }
+            });
+          };
+        },
+        async () => {
+          if (!res.headersSent) {
+            next(); // will pass on to error/404 handling if the controller stack didn't give a response.
+          }
+        },
+      );
+
+      Promise.resolve(fn()).catch((err) => {
+        // do error handling
+        this.onException(
+          err,
+          this.createRequestContext(req, res),
+          next,
+          controller,
         );
-        if (typeof controllerReponse === 'boolean' && !controllerReponse) {
-          // the controller didn't handle the error so throw down the error chain
-          next(err);
-        } else {
-          try {
-            // controller returned a _non_ boolean response which is expected to be a HttpResponse factory
-            this.handleControllerResponse(controllerReponse, req[CTX_SYMBOL]);
-          } catch (err) {
-            next(err);
-          }
-        }
       });
     };
   }
