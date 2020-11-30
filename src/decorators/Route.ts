@@ -114,7 +114,7 @@ export const RequestMapping = (
               case RequestMethod.POST:
                 const fillable = type.fillable ? type.fillable() : [];
                 if (fillable.length) {
-                  Object.keys(ctx.body).forEach((key) => {
+                  Object.keys(ctx.body.raw()).forEach((key) => {
                     if (fillable.includes(key)) {
                       model[key] = ctx.body.get(key);
                     }
