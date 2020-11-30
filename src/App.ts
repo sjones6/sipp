@@ -378,7 +378,7 @@ export class App {
                   isNextCalled = true;
                   return err
                     ? reject(err)
-                    : Promise.resolve(nextFn()).then(resolve);
+                    : Promise.resolve(nextFn()).then(resolve).catch(reject);
                 }),
               );
             }).then(() => {
