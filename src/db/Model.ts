@@ -14,10 +14,10 @@ export class Model extends M implements CanValidate {
   public delete(): Promise<Number | string> {
     return this.$query().delete();
   }
-  public validate(): Promise<ValidationErrorCollection | true> {
+  public validate(): Promise<ValidationErrorCollection> {
     return validate(this);
   }
-  public validateSync(): ValidationErrorCollection | true {
+  public validateSync(): ValidationErrorCollection {
     return validateSync(this);
   }
 }
