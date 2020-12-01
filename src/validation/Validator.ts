@@ -2,16 +2,16 @@ import { validate as validateP, validateSync as validateS } from 'class-validato
 import { ValidationErrorCollection } from './ValidationErrors';
 
 export interface CanValidate {
-  validate(): Promise<ValidationErrorCollection | true>
-  validateSync(): ValidationErrorCollection | true
+  validate(): Promise<ValidationErrorCollection>
+  validateSync(): ValidationErrorCollection
 }
 
-export function validate(obj): Promise<ValidationErrorCollection | true> {
+export function validate(obj): Promise<ValidationErrorCollection> {
   return validateP(obj).then(errors => {
-    return !errors.length || new ValidationErrorCollection(errors);
+    return new ValidationErrorCollection(errors);
   });
 }
-export function validateSync(obj): ValidationErrorCollection | true {
+export function validateSync(obj): ValidationErrorCollection {
   const errors = validateS(obj)
-  return !errors.length || new ValidationErrorCollection(errors);
+  return new ValidationErrorCollection(errors);
 }

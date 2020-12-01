@@ -6,7 +6,7 @@ import { CanValidate, validate, validateSync } from '../../validation/Validator'
 
 const TRUE_PRIVATE = Symbol('true private');
 
-class ReadOnlyObjectMapper implements CanValidate {
+class ObjectMapper implements CanValidate {
   constructor(obj: object) {
     this[TRUE_PRIVATE] = {
       map: new Map(Object.entries(obj)),
@@ -37,11 +37,11 @@ class ReadOnlyObjectMapper implements CanValidate {
   }
 }
 
-export class Body extends ReadOnlyObjectMapper { }
-export class Headers extends ReadOnlyObjectMapper { }
-export class Params extends ReadOnlyObjectMapper { }
-export class Query extends ReadOnlyObjectMapper { }
-export class Old extends ReadOnlyObjectMapper { }
+export class Body extends ObjectMapper { }
+export class Headers extends ObjectMapper { }
+export class Params extends ObjectMapper { }
+export class Query extends ObjectMapper { }
+export class Old extends ObjectMapper { }
 
 export class RequestSession {
   public readonly session: session.SessionData;
