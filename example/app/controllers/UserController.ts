@@ -21,6 +21,7 @@ export class UsersController extends Controller {
 
   @Post('/', { name: 'user.create' })
   public async createUser(user: User) {
+    const validation = await user.validate();
     await user.save();
     return this.redirect(`/users/${user.id}`);
   }
