@@ -2,30 +2,46 @@ import { Request, Response } from 'express';
 import session from 'express-session';
 import { Logger } from '../../logger';
 import { RouteMapper, IQuery } from '../../routing/RouteMapper';
+import { CanValidate, validate, validateSync } from '../../validation/Validator';
 
-class ObjectMapper {
-  private _raw: object;
-  private map: Map<string, any>;
+const TRUE_PRIVATE = Symbol('true private');
+
+class ReadOnlyObjectMapper implements CanValidate {
   constructor(obj: object) {
-    this.map = new Map(Object.entries(obj));
-    this._raw = obj;
+    this[TRUE_PRIVATE] = {
+      map: new Map(Object.entries(obj)),
+      raw: obj
+    }
+    Object.assign(this, obj);
+  }
+  public set(key: string, value: any): void {
+    const { map, raw } = this[TRUE_PRIVATE];
+    raw[key] = value;
+    map.set(key, value);
+    Object.assign(this, { [key]: value });
   }
   public has(key: string): boolean {
-    return this.map.has(key);
+    return this[TRUE_PRIVATE].map.has(key);
   }
   public get<T>(key: string, defaultValue?: T): T {
-    return this.map.has(key) ? this.map.get(key) : defaultValue;
+    return this.has(key) ? this[TRUE_PRIVATE].map.get(key) : defaultValue;
   }
   public raw(): object {
-    return this._raw;
+    return this[TRUE_PRIVATE].raw;
+  }
+  public validate() {
+    return validate(this);
+  }
+  public validateSync() {
+    return validateSync(this);
   }
 }
 
-export class Body extends ObjectMapper {}
-export class Headers extends ObjectMapper {}
-export class Params extends ObjectMapper {}
-export class Query extends ObjectMapper {}
-export class Old extends ObjectMapper {}
+export class Body extends ReadOnlyObjectMapper { }
+export class Headers extends ReadOnlyObjectMapper { }
+export class Params extends ReadOnlyObjectMapper { }
+export class Query extends ReadOnlyObjectMapper { }
+export class Old extends ReadOnlyObjectMapper { }
 
 export class RequestSession {
   public readonly session: session.SessionData;

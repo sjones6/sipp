@@ -68,16 +68,16 @@ export const RequestMapping = (
         const type = types[i];
         switch (true) {
           case compareClasses(type, Body):
-            realArgs.push(ctx.body);
+            realArgs.push(type !== Body ? new type(ctx.body.raw()) : ctx.body);
             break;
           case compareClasses(type, Params):
-            realArgs.push(ctx.params);
+            realArgs.push(type !== Params ? new type(ctx.params.raw()) : ctx.params);
             break;
           case compareClasses(type, Query):
-            realArgs.push(ctx.query);
+            realArgs.push(type !== Query ? new type(ctx.query.raw()) : ctx.query);
             break;
           case compareClasses(type, Headers):
-            realArgs.push(ctx.headers);
+            realArgs.push(type !== Headers ? new type(ctx.headers.raw()) : ctx.headers);
             break;
           case compareClasses(type, RequestContext):
             realArgs.push(ctx);
