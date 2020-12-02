@@ -1,7 +1,10 @@
 import winston, { format } from 'winston';
 import { join } from 'path';
 import { MESSAGE } from 'triple-beam';
+import { getStore, hasStore } from '../utils/async-store';
 const { combine, timestamp } = format;
+
+const STORAGE_KEY = 'logger-storage-key';
 
 export interface LoggerOpt {
   service: string | false;
@@ -21,22 +24,22 @@ export class Logger {
   }
 
   /**
-   * @param scoping object of properties to add to child
-   */
-  public childLogger(scoping: any): Logger {
-    return new Logger(this.logger, { ...this.opt, ...scoping });
-  }
-
-  /**
    * @param scoping key=value pairs to add to the logger's scope when logging messages
    * @param force if true, it will overwrite any existing scopted values
    */
   addScope(scoping: object, force?: boolean): void {
-    Object.keys(scoping).forEach((key) => {
-      if (!{}.hasOwnProperty.call(this.opt, key) || force) {
-        this.opt[key] = scoping[key];
-      }
-    });
+    const store = getStore();
+    if (store) {
+      const currentScope = store.get(STORAGE_KEY) || {};
+      Object.keys(scoping).forEach((key) => {
+        if (!{}.hasOwnProperty.call(this.opt, key) || force) {
+          currentScope[key] = scoping[key];
+        }
+      });
+      store.set(STORAGE_KEY, currentScope);
+    } else {
+      this.warn('addScope called outside of async/req context');
+    }
   }
 
   public emergency(msg: any): Logger {
@@ -110,13 +113,14 @@ export class Logger {
   }
 
   private log(level: LOG_LEVELS, message: any) {
+    const store = hasStore() ? getStore() : null;
     return this.logger.log(
       Object.assign(
         {
           level,
           message,
         },
-        this.opt,
+        store ? store.get(STORAGE_KEY) : {},
       ),
     );
   }

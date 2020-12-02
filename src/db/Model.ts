@@ -1,12 +1,39 @@
-import { Model as M } from 'objection';
-import { CanValidate, validate, validateSync, ValidationErrorCollection } from '../validation';
+import { Model as M, Transaction } from 'objection';
+import { getStore } from '../utils/async-store';
+import {
+  CanValidate,
+  validate,
+  validateSync,
+  ValidationErrorCollection,
+} from '../validation';
+
+export const TRANSACTION_KEY = 'transaction-storage-key';
 
 export class Model extends M implements CanValidate {
   static modelName() {
     return this.name.replace('Model', '').toLowerCase();
   }
-  static fillable() {
+  static fillable(): string[] {
     return [];
+  }
+  static query(trx?: Transaction) {
+    const store = getStore();
+    return M.query.bind(this)(trx || store.get(TRANSACTION_KEY));
+  }
+  static relatedQuery(relationName: any, trx?: Transaction) {
+    const store = getStore();
+    return M.relatedQuery.bind(this)(
+      relationName,
+      trx || store.get(TRANSACTION_KEY),
+    );
+  }
+  public $query(trx?: Transaction) {
+    const store = getStore();
+    return super.$query(trx || store.get(TRANSACTION_KEY));
+  }
+  public $relatedQuery(relationName: any, trx?: Transaction) {
+    const store = getStore();
+    return super.$relatedQuery(relationName, trx || store.get(TRANSACTION_KEY));
   }
   public save(): Promise<Model> {
     return this.$query().insert();

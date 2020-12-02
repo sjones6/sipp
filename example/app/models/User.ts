@@ -1,10 +1,5 @@
 import { Model } from '@src/index';
-import {
-  IsEmail,
-  IsString,
-  Min,
-  Max
-} from '@src/validation';
+import { IsEmail, IsString, Min, Max } from '@src/validation';
 
 export class User extends Model {
   id: number;

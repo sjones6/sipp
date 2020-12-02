@@ -1,11 +1,13 @@
 import { ValidationError } from 'class-validator';
 
 export class ValidationErrorCollection {
-  private readonly errorMap: Map<string, ValidationError>
+  private readonly errorMap: Map<string, ValidationError>;
   constructor(private readonly errors: ValidationError[]) {
-    this.errorMap = new Map(errors.map((error) => {
-      return [error.property, error]
-    }));
+    this.errorMap = new Map(
+      errors.map((error) => {
+        return [error.property, error];
+      }),
+    );
   }
 
   public get isValid() {
@@ -15,7 +17,7 @@ export class ValidationErrorCollection {
   public hasError(property: string): boolean {
     return this.errorMap.has(property);
   }
-  
+
   public getError(property: string): ValidationError | undefined {
     return this.errorMap.get(property);
   }

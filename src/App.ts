@@ -29,11 +29,15 @@ import {
   HTTPResponse,
   JSONResponse,
   NoContentResponse,
+  CONTEXT_KEY,
 } from './http';
+import { Transaction } from 'objection';
 import { IAppConfig, IMiddlewareFunc, ISippNextFunc } from './interfaces';
 import { RouteMapper } from './routing/RouteMapper';
 import logger, { Logger } from './logger';
 import { Download } from './http/response/download';
+import { getStore, initStore } from './utils/async-store';
+import { TRANSACTION_KEY } from './db';
 
 // initializes the module-alias processing with the root same as the process working directory
 initModuleAlias(process.cwd());
@@ -163,9 +167,7 @@ export class App {
     this.connection.connect();
 
     // global middlewares
-    this.app.use(
-      this.wrapMiddlewareAndHandleErr(undefined, ...this.globalMiddleware),
-    );
+    this.app.use(this.wrapMiddleware(...this.globalMiddleware));
 
     // controllers
     this.registerControllers();
@@ -238,19 +240,51 @@ export class App {
           // apply the method to the express application
           this.app[methodMetadata].apply(this.app, [
             fullPath,
-            this.wrapMiddlewareAndHandleErr(
-              controller,
+            ...this.wrapMiddleware(
               ...(this.middleware || []),
               ...(controllerMiddleware || []), // controller middleware
               ...(methodMiddleware || []), // method handler middleware
               async (req: Request, res: Response) => {
+                req.logger.debug('start controller handling');
                 const ctx = this.createRequestContext(req, res);
-                const controllerReponse = await controller[method](ctx);
+                const controllerReponse = await controller[method](ctx).then(
+                  async (controllerReponse) => {
+                    const store = getStore();
+                    const trx = store.get(TRANSACTION_KEY) as Transaction;
+                    if (trx && !trx.isCompleted()) {
+                      req.logger.info('transaction commit');
+                      await trx.commit();
+                    }
+                    return controllerReponse;
+                  },
+                );
+                req.logger.debug('end controller handling');
                 if (!res.headersSent) {
                   this.handleControllerResponse(controllerReponse, ctx);
                 }
+                this.afterResponse(ctx);
               },
             ),
+            async (err: Error, req: Request, res: Response, next) => {
+              try {
+                // handle transaction rollbash, if any
+                const trx = getStore().get(TRANSACTION_KEY) as Transaction;
+                if (trx && !trx.isCompleted()) {
+                  req.logger.info('rolling back transaction');
+                  await trx.rollback().catch((rollbackError) => {
+                    req.logger.critical(
+                      `failed to rollback transaction: ${rollbackError.message}`,
+                    );
+                  });
+                }
+                // do error handling
+                const ctx = this.createRequestContext(req, res);
+                this.onException(err, ctx, next, controller);
+                this.afterResponse(ctx);
+              } catch (err) {
+                next(err);
+              }
+            },
           ]);
         }
       }
@@ -343,68 +377,46 @@ export class App {
     }
   }
 
-  private wrapMiddlewareAndHandleErr(
-    controller: Controller | undefined,
-    ...middleware: IMiddlewareFunc[]
-  ): IMiddlewareFunc {
-    return (req: Request, res: Response, next: NextFunction) => {
-      const fn = middleware.reduceRight(
-        (nextFn: ISippNextFunc, currentMiddlewareFn: IMiddlewareFunc) => {
-          const expectsNext = currentMiddlewareFn.length === 3;
-
-          // if the heads have already been sent- don't keep processing middleware
-          if (res.headersSent) {
-            nextFn();
-          }
-
-          // synchronous/promise-ified middleware
-          if (!expectsNext) {
-            return () => {
-              return Promise.resolve(
-                currentMiddlewareFn(req, res, nextFn),
-              ).then(() => nextFn());
-            };
-          }
-
-          // promise-ified express / callback styles middleware
-          return () => {
-            let isNextCalled = false;
-            return new Promise((resolve, reject) => {
-              Promise.resolve(
-                currentMiddlewareFn(req, res, (err) => {
-                  if (isNextCalled) {
-                    return;
+  private wrapMiddleware(...middleware: IMiddlewareFunc[]): IMiddlewareFunc[] {
+    return middleware
+      .filter((fn) => fn)
+      .map((fn) => {
+        return (req: Request, res: Response, next: NextFunction) => {
+          let isResolved = false;
+          new Promise((resolve, reject) => {
+            const expectsNext = fn.length === 3;
+            const maybePromise = fn(req, res, (err) => {
+              isResolved = true;
+              return err ? reject(err) : resolve();
+            });
+            if (maybePromise && maybePromise instanceof Promise) {
+              maybePromise
+                .then(() => {
+                  if (!isResolved) {
+                    resolve();
                   }
-                  isNextCalled = true;
-                  return err
-                    ? reject(err)
-                    : Promise.resolve(nextFn()).then(resolve).catch(reject);
-                }),
-              );
-            }).then(() => {
-              if (!isNextCalled) {
-                return nextFn();
+                })
+                .catch((err) => {
+                  if (!isResolved) {
+                    reject(err);
+                  }
+                });
+            } else if (!expectsNext) {
+              resolve();
+            }
+          })
+            .then(() => {
+              if (!res.headersSent) {
+                next();
+              }
+            })
+            .catch((err) => {
+              if (!res.headersSent) {
+                next(err);
               }
             });
-          };
-        },
-        async () => {
-          if (!res.headersSent) {
-            next(); // will pass on to error/404 handling if the controller stack didn't give a response.
-          }
-        },
-      );
-
-      Promise.resolve(fn()).catch((err) => {
-        // do error handling
-        this.onException(
-          err,
-          this.createRequestContext(req, res),
-          next,
-          controller,
-        );
+        };
       });
-    };
   }
 
   private handleControllerResponse(
@@ -415,6 +427,7 @@ export class App {
       controllerReponse,
     );
     reply.handle(ctx);
+    ctx.req.logger.debug('response sent');
   }
 
   private resolveControllerResponse(controllerReponse: any): HTTPResponse<any> {
@@ -440,5 +453,13 @@ export class App {
       default:
         return new HTTPResponse(controllerReponse);
     }
+  }
+
+  private afterResponse(ctx: RequestContext) {
+    const { req, res } = ctx;
+    req.logger.addScope({
+      status: res.statusCode,
+    });
+    req.logger.info(`duration ${Date.now() - req.received.getTime()}ms`);
   }
 }

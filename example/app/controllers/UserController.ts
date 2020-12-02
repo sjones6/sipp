@@ -10,9 +10,13 @@ import {
   Post,
   RequestSession,
   RequestContext,
+  Apply,
+  transacting,
+  ApplyAll,
 } from '@src/index';
 import { UsersList, ShowUser } from './Users';
 
+@ApplyAll(transacting)
 export class UsersController extends Controller {
   @Get()
   public async listUsers(ctx: RequestContext): Promise<string> {
@@ -20,9 +24,11 @@ export class UsersController extends Controller {
   }
 
   @Post('/', { name: 'user.create' })
+  @Apply(transacting)
   public async createUser(user: User) {
     const validation = await user.validate();
     await user.save();
+    throw new Error('fooled ya!');
     return this.redirect(`/users/${user.id}`);
   }
 
@@ -44,6 +50,7 @@ export class UsersController extends Controller {
   }
 
   @Delete('/:user', { name: 'delete-user' })
+  @Apply(transacting)
   public async deleteUser(user: User) {
     await user.delete();
     return this.redirect(`/users`);
@@ -53,7 +60,8 @@ export class UsersController extends Controller {
     switch (true) {
       case e instanceof NotFoundException:
         return { lost: true };
+      default:
+        return this.redirect(`/users`);
     }
-    return false;
   }
 }
