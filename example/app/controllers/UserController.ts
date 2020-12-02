@@ -28,7 +28,6 @@ export class UsersController extends Controller {
   public async createUser(user: User) {
     const validation = await user.validate();
     await user.save();
-    throw new Error('fooled ya!');
     return this.redirect(`/users/${user.id}`);
   }
 
