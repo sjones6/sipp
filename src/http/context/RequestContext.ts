@@ -2,16 +2,22 @@ import { Request, Response } from 'express';
 import session from 'express-session';
 import { Logger } from '../../logger';
 import { RouteMapper, IQuery } from '../../routing/RouteMapper';
-import { CanValidate, validate, validateSync } from '../../validation/Validator';
+import {
+  CanValidate,
+  validate,
+  validateSync,
+} from '../../validation/Validator';
 
 const TRUE_PRIVATE = Symbol('true private');
+
+export const CONTEXT_KEY = 'context-storage-key';
 
 class ObjectMapper implements CanValidate {
   constructor(obj: object) {
     this[TRUE_PRIVATE] = {
       map: new Map(Object.entries(obj)),
-      raw: obj
-    }
+      raw: obj,
+    };
     Object.assign(this, obj);
   }
   public set(key: string, value: any): void {
@@ -37,11 +43,11 @@ class ObjectMapper implements CanValidate {
   }
 }
 
-export class Body extends ObjectMapper { }
-export class Headers extends ObjectMapper { }
-export class Params extends ObjectMapper { }
-export class Query extends ObjectMapper { }
-export class Old extends ObjectMapper { }
+export class Body extends ObjectMapper {}
+export class Headers extends ObjectMapper {}
+export class Params extends ObjectMapper {}
+export class Query extends ObjectMapper {}
+export class Old extends ObjectMapper {}
 
 export class RequestSession {
   public readonly session: session.SessionData;
