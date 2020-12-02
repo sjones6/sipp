@@ -106,10 +106,10 @@ export const RequestMapping = (
               case RequestMethod.DELETE:
                 // look for an id in the params
                 const name = type.modelName();
-                const id = ctx.params.has(name)
-                  ? ctx.params.get(name) || ctx.params.get('id')
-                  : null;
-                model = await type.query().findById(id);
+                const id =
+                  (ctx.params.has(name) ? ctx.params.get(name) : null) ||
+                  ctx.params.get('id');
+                model = await type.load().findById(id);
               case RequestMethod.GET:
               case RequestMethod.DELETE:
                 break;

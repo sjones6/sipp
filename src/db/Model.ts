@@ -1,4 +1,4 @@
-import { Model as M, Transaction } from 'objection';
+import { Model as M, Transaction, QueryBuilder } from 'objection';
 import { getStore } from '../utils/async-store';
 import {
   CanValidate,
@@ -15,6 +15,17 @@ export class Model extends M implements CanValidate {
   }
   static fillable(): string[] {
     return [];
+  }
+  static eager(): string[] {
+    return this.relationMappings ? Object.keys(this.relationMappings) : [];
+  }
+  static load(trx?: Transaction): QueryBuilder<Model> {
+    const eager = this.eager();
+    const query = this.query(trx);
+    if (eager.length) {
+      query.withGraphFetched(eager);
+    }
+    return query;
   }
   static query(trx?: Transaction) {
     const store = getStore();
