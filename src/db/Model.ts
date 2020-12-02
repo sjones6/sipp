@@ -16,13 +16,13 @@ export class Model extends M implements CanValidate {
   static fillable(): string[] {
     return [];
   }
-  static eager(): string[] {
-    return this.relationMappings ? Object.keys(this.relationMappings) : [];
+  static eager(): string | false {
+    return this.relationMappings ? Object.keys(this.relationMappings).join(' ') : false;
   }
   static load(trx?: Transaction): QueryBuilder<Model> {
     const eager = this.eager();
     const query = this.query(trx);
-    if (eager.length) {
+    if (eager) {
       query.withGraphFetched(eager);
     }
     return query;
