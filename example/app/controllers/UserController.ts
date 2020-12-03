@@ -8,7 +8,7 @@ import {
   Logger,
   NotFoundException,
   Post,
-  RequestSession,
+  Session,
   RequestContext,
   Apply,
   transacting,
@@ -35,7 +35,7 @@ export class UsersController extends Controller {
   public async getUser(
     user: User,
     logger: Logger,
-    session: RequestSession,
+    session: Session,
     ctx: RequestContext,
   ) {
     logger.debug(`getting user ${user.id}`);

@@ -4,7 +4,7 @@ import {
 } from 'class-validator';
 import { ValidationErrorCollection } from './ValidationErrors';
 
-export interface CanValidate {
+export interface IValidator {
   validate(): Promise<ValidationErrorCollection>;
   validateSync(): ValidationErrorCollection;
 }
@@ -17,4 +17,13 @@ export function validate(obj): Promise<ValidationErrorCollection> {
 export function validateSync(obj): ValidationErrorCollection {
   const errors = validateS(obj);
   return new ValidationErrorCollection(errors);
+}
+
+export class Validator implements IValidator {
+  validate() {
+    return validate(this);
+  }
+  validateSync() {
+    return validateSync(this);
+  }
 }

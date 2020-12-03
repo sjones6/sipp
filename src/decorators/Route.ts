@@ -7,13 +7,15 @@ import {
   PATH_OPTION_METADATA,
 } from '../constants';
 import {
-  RequestContext,
-  RequestSession,
+  Auth,
   Body,
-  Query,
   Headers,
-  Params,
   Old,
+  Params,
+  Query,
+  RequestContext,
+  Session,
+  Url,
 } from '../http';
 import { Logger } from '../logger';
 
@@ -67,22 +69,24 @@ export const RequestMapping = (
       for (let i = 0, n = types.length; i < n; i++) {
         const type = types[i];
         switch (true) {
+          case compareClasses(type, Auth):
+            realArgs.push(ctx.auth);
+            break;
+          case compareClasses(type, Url):
+            realArgs.push(ctx.url);
+            break;
           case compareClasses(type, Body):
-            realArgs.push(type !== Body ? new type(ctx.body.raw()) : ctx.body);
+            realArgs.push(type !== Body ? new type(ctx.body) : ctx.body);
             break;
           case compareClasses(type, Params):
-            realArgs.push(
-              type !== Params ? new type(ctx.params.raw()) : ctx.params,
-            );
+            realArgs.push(type !== Params ? new type(ctx.params) : ctx.params);
             break;
           case compareClasses(type, Query):
-            realArgs.push(
-              type !== Query ? new type(ctx.query.raw()) : ctx.query,
-            );
+            realArgs.push(type !== Query ? new type(ctx.query) : ctx.query);
             break;
           case compareClasses(type, Headers):
             realArgs.push(
-              type !== Headers ? new type(ctx.headers.raw()) : ctx.headers,
+              type !== Headers ? new type(ctx.headers) : ctx.headers,
             );
             break;
           case compareClasses(type, RequestContext):
@@ -94,7 +98,7 @@ export const RequestMapping = (
           case compareClasses(type, Old):
             realArgs.push(ctx.old);
             break;
-          case compareClasses(type, RequestSession):
+          case compareClasses(type, Session):
             realArgs.push(ctx.session);
             break;
           case type.prototype instanceof Model:
@@ -107,8 +111,8 @@ export const RequestMapping = (
                 // look for an id in the params
                 const name = type.modelName();
                 const id =
-                  (ctx.params.has(name) ? ctx.params.get(name) : null) ||
-                  ctx.params.get('id');
+                  (ctx.params[name] ? ctx.params[name] : null) ||
+                  ctx.params['id'];
                 model = await type.load().findById(id);
               case RequestMethod.GET:
               case RequestMethod.DELETE:
@@ -120,9 +124,9 @@ export const RequestMapping = (
               case RequestMethod.POST:
                 const fillable = type.fillable ? type.fillable() : [];
                 if (fillable.length) {
-                  Object.keys(ctx.body.raw()).forEach((key) => {
+                  Object.keys(ctx.body).forEach((key) => {
                     if (fillable.includes(key)) {
-                      model[key] = ctx.body.get(key);
+                      model[key] = ctx.body[key];
                     }
                   });
                 }

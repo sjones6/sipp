@@ -4,6 +4,8 @@ import { User } from '../models/User';
 export function UsersList(users: User[], ctx: RequestContext) {
   return (
     <div>
+      {ctx.url.scriptTag('app')}
+      {ctx.url.styleTag('app')}
       <form method="post" action="/users">
         <div>
           <label>
@@ -28,7 +30,7 @@ export function UsersList(users: User[], ctx: RequestContext) {
               <a href={`/users/${user.id}`}>link</a>
               <form
                 method="post"
-                action={ctx.url(
+                action={ctx.url.alias(
                   'delete-user',
                   { user: user.id },
                   undefined,
@@ -42,7 +44,7 @@ export function UsersList(users: User[], ctx: RequestContext) {
           );
         })}
       </ul>
-      <a href={ctx.url('foo')}>Download Foo</a>
+      <a href={ctx.url.alias('foo')}>Download Foo</a>
     </div>
   );
 }
@@ -55,7 +57,7 @@ export function ShowUser(user: User, ctx: RequestContext) {
       ))}
       <a href="/users">List Users</a>
       <h1>{user.email}</h1>
-      <a href={ctx.url('download-user', { user: user.id })}>Download</a>
+      <a href={ctx.url.alias('download-user', { user: user.id })}>Download</a>
     </div>
   );
 }

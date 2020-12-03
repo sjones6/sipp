@@ -9,8 +9,9 @@ export class HomeController extends Controller {
     return {
       path: req.path,
       method: req.method,
-      home: ctx.url('home'),
-      user: ctx.url('get-user', { user: 1 }),
+      home: ctx.url.alias('home'),
+      user: ctx.url.alias('get-user', { user: 1 }),
+      arbitrary: ctx.url.url('/some/path/:id', { id: 2 }, { foo: 2 }, 'patch'),
       flash: ctx.session.getFlash('info'),
       query: ctx.query,
       ts: Date.now(),

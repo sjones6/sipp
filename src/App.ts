@@ -315,7 +315,12 @@ export class App {
    */
   private createRequestContext(req: Request, res: Response): RequestContext {
     if (!req[CTX_SYMBOL]) {
-      req[CTX_SYMBOL] = new RequestContext(req, res, this.routeMapper);
+      req[CTX_SYMBOL] = new RequestContext(
+        req,
+        res,
+        this.routeMapper,
+        this.config.static,
+      );
     }
     return req[CTX_SYMBOL];
   }

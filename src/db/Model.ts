@@ -17,7 +17,9 @@ export class Model extends M implements CanValidate {
     return [];
   }
   static eager(): string | false {
-    return this.relationMappings ? Object.keys(this.relationMappings).join(' ') : false;
+    return this.relationMappings
+      ? Object.keys(this.relationMappings).join(' ')
+      : false;
   }
   static load(trx?: Transaction): QueryBuilder<Model> {
     const eager = this.eager();
