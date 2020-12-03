@@ -30,6 +30,7 @@ import {
   JSONResponse,
   NoContentResponse,
   CONTEXT_KEY,
+  Auth,
 } from './http';
 import { Transaction } from 'objection';
 import { IAppConfig, IMiddlewareFunc } from './interfaces';
@@ -50,7 +51,7 @@ const defaultConfig = {
 
 const CTX_SYMBOL = Symbol('ctx');
 
-export class App<User extends Model> {
+export class App {
   private app: express.Application;
   private controllers: Controller[] = [];
   private globalMiddleware: IMiddlewareFunc[] = [];
@@ -78,11 +79,11 @@ export class App<User extends Model> {
     this.connection = new Connection(this.config);
   }
 
-  static bootstrap<User extends Model>(config?: IAppConfig, controllers?: Controller[]): App<User> {
-    return new App<User>(express(), config, controllers).init();
+  static bootstrap<User extends Model>(config?: IAppConfig, controllers?: Controller[]): App {
+    return new App(express(), config, controllers).init();
   }
 
-  public init(): App<User> {
+  public init(): App {
     this.logger.debug('App:init');
 
     // wire default handling of payloads, req id, logging, method override
@@ -123,7 +124,7 @@ export class App<User extends Model> {
   /**
    * Add a set of global middlewares
    */
-  public withMiddleware(...middleware: Array<IMiddlewareFunc>): App<User> {
+  public withMiddleware(...middleware: Array<IMiddlewareFunc>): App {
     this.logger.debug('adding middleware');
     this.middleware.push(...middleware);
     return this;
@@ -135,7 +136,7 @@ export class App<User extends Model> {
    * Global middleware do not report errors to controller
    * exception handlers
    */
-  public withGlobalMiddleware(...middleware: Array<IMiddlewareFunc>): App<User> {
+  public withGlobalMiddleware(...middleware: Array<IMiddlewareFunc>): App {
     this.logger.debug('adding global middleware');
     this.globalMiddleware.push(...middleware);
     return this;
@@ -144,7 +145,7 @@ export class App<User extends Model> {
   /**
    * Add a set of controllers
    */
-  public withControllers(...controllers: Controller[]): App<User> {
+  public withControllers(...controllers: Controller[]): App {
     this.logger.debug('adding controllers');
     this.controllers.push(...controllers);
     return this;
@@ -153,7 +154,7 @@ export class App<User extends Model> {
   /**
    * Override the default exception handler with one of your own
    */
-  public withExceptionHandler(handler: ExceptionHandler): App<User> {
+  public withExceptionHandler(handler: ExceptionHandler): App {
     this.logger.debug(`adding exception handler ${handler.constructor.name}`);
     this.exceptionHandler = handler;
     return this;
@@ -313,7 +314,7 @@ export class App<User extends Model> {
   /**
    * Create a full-request context for a state-less request
    */
-  private createRequestContext(req: Request, res: Response): RequestContext<User> {
+  private createRequestContext(req: Request, res: Response): RequestContext {
     if (!req[CTX_SYMBOL]) {
       req[CTX_SYMBOL] = new RequestContext(
         req,
@@ -331,7 +332,7 @@ export class App<User extends Model> {
    */
   private onException(
     err: Error | BaseException,
-    ctx: RequestContext<User>,
+    ctx: RequestContext,
     next: NextFunction,
     controller?: Controller,
   ) {
@@ -426,7 +427,7 @@ export class App<User extends Model> {
 
   private handleControllerResponse(
     controllerReponse,
-    ctx: RequestContext<User>,
+    ctx: RequestContext,
   ): void {
     const reply: HTTPResponse<any> = this.resolveControllerResponse(
       controllerReponse,
@@ -460,7 +461,7 @@ export class App<User extends Model> {
     }
   }
 
-  private afterResponse(ctx: RequestContext<User>) {
+  private afterResponse(ctx: RequestContext) {
     const { req, res } = ctx;
     req.logger.addScope({
       status: res.statusCode,

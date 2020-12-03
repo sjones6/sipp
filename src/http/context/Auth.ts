@@ -1,12 +1,13 @@
 import { Request } from 'express';
 import { Model } from '../../db';
 
-export class Auth<User extends Model> {
+export class Auth {
   public isAuthenticated: boolean;
+  public userPath: string = 'user';
   constructor(private readonly req: Request) {
-    this.isAuthenticated = !!req['user'];
+    this.isAuthenticated = !!req[this.userPath];
   }
-  get user(): User {
-    return this.req['user'];
+  user<User extends Model>(): User {
+    return this.req[this.userPath];
   }
 }
