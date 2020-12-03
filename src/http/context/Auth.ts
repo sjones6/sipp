@@ -1,20 +1,12 @@
 import { Request } from 'express';
 import { Model } from '../../db';
 
-declare global {
-  namespace Express {
-    interface Request {
-      user?: any;
-    }
-  }
-}
-
-export class Auth {
+export class Auth<User extends Model> {
   public isAuthenticated: boolean;
   constructor(private readonly req: Request) {
-    this.isAuthenticated = !!req.user;
+    this.isAuthenticated = !!req['user'];
   }
-  get user(): Model | undefined {
-    return this.req.user;
+  get user(): User {
+    return this.req['user'];
   }
 }

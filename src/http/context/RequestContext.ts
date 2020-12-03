@@ -5,10 +5,11 @@ import { Body, Headers, Params, Query, Old } from './Req';
 import { Session } from './Session';
 import { Url } from './Url';
 import { Auth } from './Auth';
+import { Model } from '../../db';
 
 export const CONTEXT_KEY = 'context-storage-key';
 
-export class RequestContext {
+export class RequestContext<User extends Model> {
   public readonly body: Body;
   public readonly headers: Headers;
   public readonly logger: Logger;
@@ -19,7 +20,7 @@ export class RequestContext {
   public readonly query: Query;
   public readonly session: Session;
   public readonly url: Url;
-  public readonly auth: Auth;
+  public readonly auth: Auth<User>;
 
   constructor(
     public readonly req: Request,

@@ -32,12 +32,12 @@ import {
   CONTEXT_KEY,
 } from './http';
 import { Transaction } from 'objection';
-import { IAppConfig, IMiddlewareFunc, ISippNextFunc } from './interfaces';
+import { IAppConfig, IMiddlewareFunc } from './interfaces';
 import { RouteMapper } from './routing/RouteMapper';
 import logger, { Logger } from './logger';
 import { Download } from './http/response/download';
-import { getStore, initStore } from './utils/async-store';
-import { TRANSACTION_KEY } from './db';
+import { getStore } from './utils/async-store';
+import { Model, TRANSACTION_KEY } from './db';
 
 // initializes the module-alias processing with the root same as the process working directory
 initModuleAlias(process.cwd());
@@ -50,7 +50,7 @@ const defaultConfig = {
 
 const CTX_SYMBOL = Symbol('ctx');
 
-export class App {
+export class App<User extends Model> {
   private app: express.Application;
   private controllers: Controller[] = [];
   private globalMiddleware: IMiddlewareFunc[] = [];
@@ -78,11 +78,11 @@ export class App {
     this.connection = new Connection(this.config);
   }
 
-  static bootstrap(config?: IAppConfig, controllers?: Controller[]): App {
-    return new App(express(), config, controllers).init();
+  static bootstrap<User extends Model>(config?: IAppConfig, controllers?: Controller[]): App<User> {
+    return new App<User>(express(), config, controllers).init();
   }
 
-  public init(): App {
+  public init(): App<User> {
     this.logger.debug('App:init');
 
     // wire default handling of payloads, req id, logging, method override
@@ -123,7 +123,7 @@ export class App {
   /**
    * Add a set of global middlewares
    */
-  public withMiddleware(...middleware: Array<IMiddlewareFunc>): App {
+  public withMiddleware(...middleware: Array<IMiddlewareFunc>): App<User> {
     this.logger.debug('adding middleware');
     this.middleware.push(...middleware);
     return this;
@@ -135,7 +135,7 @@ export class App {
    * Global middleware do not report errors to controller
    * exception handlers
    */
-  public withGlobalMiddleware(...middleware: Array<IMiddlewareFunc>): App {
+  public withGlobalMiddleware(...middleware: Array<IMiddlewareFunc>): App<User> {
     this.logger.debug('adding global middleware');
     this.globalMiddleware.push(...middleware);
     return this;
@@ -144,7 +144,7 @@ export class App {
   /**
    * Add a set of controllers
    */
-  public withControllers(...controllers: Controller[]): App {
+  public withControllers(...controllers: Controller[]): App<User> {
     this.logger.debug('adding controllers');
     this.controllers.push(...controllers);
     return this;
@@ -153,7 +153,7 @@ export class App {
   /**
    * Override the default exception handler with one of your own
    */
-  public withExceptionHandler(handler: ExceptionHandler): App {
+  public withExceptionHandler(handler: ExceptionHandler): App<User> {
     this.logger.debug(`adding exception handler ${handler.constructor.name}`);
     this.exceptionHandler = handler;
     return this;
@@ -313,7 +313,7 @@ export class App {
   /**
    * Create a full-request context for a state-less request
    */
-  private createRequestContext(req: Request, res: Response): RequestContext {
+  private createRequestContext(req: Request, res: Response): RequestContext<User> {
     if (!req[CTX_SYMBOL]) {
       req[CTX_SYMBOL] = new RequestContext(
         req,
@@ -331,7 +331,7 @@ export class App {
    */
   private onException(
     err: Error | BaseException,
-    ctx: RequestContext,
+    ctx: RequestContext<User>,
     next: NextFunction,
     controller?: Controller,
   ) {
@@ -426,7 +426,7 @@ export class App {
 
   private handleControllerResponse(
     controllerReponse,
-    ctx: RequestContext,
+    ctx: RequestContext<User>,
   ): void {
     const reply: HTTPResponse<any> = this.resolveControllerResponse(
       controllerReponse,
@@ -460,7 +460,7 @@ export class App {
     }
   }
 
-  private afterResponse(ctx: RequestContext) {
+  private afterResponse(ctx: RequestContext<User>) {
     const { req, res } = ctx;
     req.logger.addScope({
       status: res.statusCode,
