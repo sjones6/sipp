@@ -1,7 +1,7 @@
 import { Model as M, Transaction, QueryBuilder } from 'objection';
 import { getStore } from '../utils/async-store';
 import {
-  CanValidate,
+  IValidator,
   validate,
   validateSync,
   ValidationErrorCollection,
@@ -9,7 +9,7 @@ import {
 
 export const TRANSACTION_KEY = 'transaction-storage-key';
 
-export class Model extends M implements CanValidate {
+export class Model extends M implements IValidator {
   static modelName() {
     return this.name.replace('Model', '').toLowerCase();
   }
