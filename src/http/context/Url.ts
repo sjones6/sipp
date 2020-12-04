@@ -20,7 +20,7 @@ export class Url {
   }
 
   public alias(name: string, params?: object, query?: IQuery, method?: METHOD) {
-    return this.routeMapper.construcUrl(name.split('/'), params, query, method);
+    return this.routeMapper.resolve(name, params, query, method);
   }
 
   public url(name: string, params?: object, query?: IQuery, method?: METHOD) {
