@@ -49,7 +49,7 @@ export class Resolver {
       this.resolutionMap.get(Type) ||
       this.rules
         .filter(([RegisteredType]) => {
-          return this.compareClasses(RegisteredType, Type);
+          return this.compareClasses(Type, RegisteredType);
         })
         .map(([RegisteredType, resolverFn]) => resolverFn)
     );
@@ -67,11 +67,11 @@ export class Resolver {
     });
   }
 
-  private compareClasses(type1, type2): boolean {
+  private compareClasses(ChildType, PotentialParentType): boolean {
     return (
-      type1 === type2 ||
-      type1.prototype instanceof type2 ||
-      type1.name === type2.name
+      ChildType === PotentialParentType ||
+      ChildType.prototype instanceof PotentialParentType ||
+      ChildType.name === PotentialParentType.name
     );
   }
 }

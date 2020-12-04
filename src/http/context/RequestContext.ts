@@ -4,12 +4,10 @@ import { RouteMapper } from '../../routing/RouteMapper';
 import { Body, Headers, Params, Query, Old } from './Req';
 import { Session } from './Session';
 import { Url } from './Url';
-import { Auth } from './Auth';
 
 export const CONTEXT_KEY = 'context-storage-key';
 
 export class RequestContext {
-  public readonly auth: Auth;
   public readonly body: Body;
   public readonly headers: Headers;
   public readonly logger: Logger;
@@ -28,7 +26,6 @@ export class RequestContext {
     private readonly routeMapper: RouteMapper,
     private readonly staticPath?: string,
   ) {
-    this.auth = new Auth(req);
     this.body = req.body = new Body(req.body || {});
     this.headers = new Headers(req.headers);
     this.method = req.method;
