@@ -281,7 +281,7 @@ export class App {
                       (response && response.prototype instanceof View) ||
                       response instanceof View
                     ) {
-                      return (response as View).renderToHtml(ctx);
+                      return (response as View).renderToHtml();
                     }
                     return response;
                   })
