@@ -14,13 +14,13 @@ export class RequestContext {
   public readonly headers: Headers;
   public readonly logger: Logger;
   public readonly method: string;
-  public readonly old: Old;
   public readonly params: Params;
   public readonly path: string;
   public readonly query: Query;
   public readonly session: Session;
   public readonly url: Url;
-  ;
+
+  private _old: Old;
 
   constructor(
     public readonly req: Request,
@@ -29,7 +29,7 @@ export class RequestContext {
     private readonly staticPath?: string,
   ) {
     this.auth = new Auth(req);
-    this.body = new Body(req.body || {});
+    this.body = req.body = new Body(req.body || {});
     this.headers = new Headers(req.headers);
     this.method = req.method;
     this.params = new Params(req.params || {});
@@ -45,7 +45,14 @@ export class RequestContext {
       this.routeMapper,
     );
     this.logger = req.logger;
+  }
 
+  // this is a trick to initialize old the first time it's requested
+  // rather than when the context is initialized
+  get old(): Old {
+    if (this._old) {
+      return this._old;
+    }
     // get old input
     const [oldInput] = this.session.getFlash('__old__');
     let old;
@@ -54,9 +61,11 @@ export class RequestContext {
         old = new Old(JSON.parse(oldInput));
       } catch (err) {
         this.logger.debug('failed to parse old input');
+        return this._old;
       }
     }
-    this.old = old || new Old({});
+    this._old = new Old(old);
+    return this._old;
   }
 
   csrfToken() {

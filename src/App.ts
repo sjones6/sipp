@@ -30,7 +30,6 @@ import {
   JSONResponse,
   NoContentResponse,
   CONTEXT_KEY,
-  Auth,
 } from './http';
 import { Transaction } from 'objection';
 import { IAppConfig, IMiddlewareFunc } from './interfaces';
@@ -39,6 +38,11 @@ import logger, { Logger } from './logger';
 import { Download } from './http/response/download';
 import { getStore } from './utils/async-store';
 import { Model, TRANSACTION_KEY } from './db';
+import { Resolver } from './framework/container/Resolver';
+import {
+  resolverFactory,
+  RESOLVER_KEY,
+} from './framework/container/resolver-factory';
 
 // initializes the module-alias processing with the root same as the process working directory
 initModuleAlias(process.cwd());
@@ -57,10 +61,11 @@ export class App {
   private globalMiddleware: IMiddlewareFunc[] = [];
   private middleware: IMiddlewareFunc[] = [];
   private exceptionHandler: ExceptionHandler;
-  private routeMapper: RouteMapper;
-  private connection: Connection;
-  private config: IAppConfig;
-  private logger: Logger;
+  private readonly routeMapper: RouteMapper;
+  private readonly connection: Connection;
+  private readonly config: IAppConfig;
+  private readonly logger: Logger;
+  private readonly resolver: Resolver;
 
   constructor(
     app: express.Application,
@@ -77,9 +82,13 @@ export class App {
     this.exceptionHandler = new ExceptionHandler(this.logger);
     this.routeMapper = new RouteMapper();
     this.connection = new Connection(this.config);
+    this.resolver = resolverFactory();
   }
 
-  static bootstrap<User extends Model>(config?: IAppConfig, controllers?: Controller[]): App {
+  static bootstrap<User extends Model>(
+    config?: IAppConfig,
+    controllers?: Controller[],
+  ): App {
     return new App(express(), config, controllers).init();
   }
 
@@ -89,6 +98,14 @@ export class App {
     // wire default handling of payloads, req id, logging, method override
     this.withGlobalMiddleware(
       reqInfoLoggingMiddleware,
+
+      // expose 2 bits of context to the request store:
+      // the resolver and the request context
+      (req: Request, res: Response) => {
+        const store = getStore();
+        store.set(RESOLVER_KEY, this.resolver);
+        store.set(CONTEXT_KEY, this.createRequestContext(req, res));
+      },
       express.json(),
       express.urlencoded({ extended: true }),
       methodOverride('_method'),
@@ -118,6 +135,11 @@ export class App {
       });
     }
 
+    return this;
+  }
+
+  public withResolver(cb: (resolver: Resolver) => void): App {
+    cb(this.resolver);
     return this;
   }
 
@@ -258,7 +280,10 @@ export class App {
                     }
                     return controllerReponse;
                   },
-                );
+                ).catch(err => {
+                  req.logger.debug(`controller response threw an error, ${err.message}`);
+                  throw err;
+                });
                 req.logger.debug('end controller handling');
                 if (!res.headersSent) {
                   this.handleControllerResponse(controllerReponse, ctx);

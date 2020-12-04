@@ -76,7 +76,7 @@ export class Url {
   }
 
   back() {
-    this.session.flash('__old__', JSON.stringify(this.body));
+    this.session.flash('__old__', JSON.stringify(this.body.getOriginal()));
     this.res.redirect(302, this.req.get('Referrer'));
   }
 }

@@ -1,4 +1,3 @@
-import { Model } from '../db';
 import {
   PATH_METADATA,
   METHOD_METADATA,
@@ -6,18 +5,7 @@ import {
   RequestMethod,
   PATH_OPTION_METADATA,
 } from '../constants';
-import {
-  Auth,
-  Body,
-  Headers,
-  Old,
-  Params,
-  Query,
-  RequestContext,
-  Session,
-  Url,
-} from '../http';
-import { Logger } from '../logger';
+import { withParamResolution } from './Resolve';
 
 interface PathOptions {
   name?: string;
@@ -33,14 +21,6 @@ const defaultMetadata = {
   [PATH_METADATA]: '/',
   [METHOD_METADATA]: RequestMethod.GET,
 };
-
-function compareClasses(type1, type2): boolean {
-  return (
-    type1 === type2 ||
-    type1.prototype instanceof type2 ||
-    type1.name === type2.name
-  );
-}
 
 export const RequestMapping = (
   metadata: RequestMappingMetadata = defaultMetadata,
@@ -58,85 +38,7 @@ export const RequestMapping = (
     const ROUTES = Reflect.getMetadata(ROUTES_METADATA, target) || {};
     ROUTES[key] = 1;
 
-    const method = descriptor.value;
-    descriptor.value = async function () {
-      let types = Reflect.getMetadata('design:paramtypes', target, key) || [];
-      if (!types.length) {
-        return method.apply(this, arguments);
-      }
-      const realArgs = [];
-      const ctx: RequestContext = arguments[0];
-      for (let i = 0, n = types.length; i < n; i++) {
-        const type = types[i];
-        switch (true) {
-          case compareClasses(type, Auth):
-            realArgs.push(ctx.auth);
-            break;
-          case compareClasses(type, Url):
-            realArgs.push(ctx.url);
-            break;
-          case compareClasses(type, Body):
-            realArgs.push(type !== Body ? new type(ctx.body) : ctx.body);
-            break;
-          case compareClasses(type, Params):
-            realArgs.push(type !== Params ? new type(ctx.params) : ctx.params);
-            break;
-          case compareClasses(type, Query):
-            realArgs.push(type !== Query ? new type(ctx.query) : ctx.query);
-            break;
-          case compareClasses(type, Headers):
-            realArgs.push(
-              type !== Headers ? new type(ctx.headers) : ctx.headers,
-            );
-            break;
-          case compareClasses(type, RequestContext):
-            realArgs.push(ctx);
-            break;
-          case compareClasses(type, Logger):
-            realArgs.push(ctx.logger);
-            break;
-          case compareClasses(type, Old):
-            realArgs.push(ctx.old);
-            break;
-          case compareClasses(type, Session):
-            realArgs.push(ctx.session);
-            break;
-          case type.prototype instanceof Model:
-            let model;
-            switch (requestMethod) {
-              case RequestMethod.GET:
-              case RequestMethod.PATCH:
-              case RequestMethod.PUT:
-              case RequestMethod.DELETE:
-                // look for an id in the params
-                const name = type.modelName();
-                const id =
-                  (ctx.params[name] ? ctx.params[name] : null) ||
-                  ctx.params['id'];
-                model = await type.load().findById(id);
-              case RequestMethod.GET:
-              case RequestMethod.DELETE:
-                break;
-              case RequestMethod.POST:
-                model = new type();
-              case RequestMethod.PATCH:
-              case RequestMethod.PUT:
-              case RequestMethod.POST:
-                const fillable = type.fillable ? type.fillable() : [];
-                if (fillable.length) {
-                  Object.keys(ctx.body).forEach((key) => {
-                    if (fillable.includes(key)) {
-                      model[key] = ctx.body[key];
-                    }
-                  });
-                }
-            }
-            realArgs.push(model);
-            break;
-        }
-      }
-      return method.apply(this, realArgs);
-    };
+    descriptor.value = withParamResolution(descriptor.value, target, key);
 
     Reflect.defineMetadata(ROUTES_METADATA, ROUTES, target);
     Reflect.defineMetadata(PATH_METADATA, path, target, key);

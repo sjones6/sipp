@@ -9,4 +9,8 @@ export class BaseException extends Error {
     exception.stack = e.stack;
     return exception;
   }
+
+  public getDescription(): string {
+    return 'error';
+  }
 }
