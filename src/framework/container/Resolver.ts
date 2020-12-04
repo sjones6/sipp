@@ -20,7 +20,9 @@ export class Resolver {
   async resolve(Type, ctx: RequestContext): Promise<any> {
     const resolvers = this.getResolvers(Type);
     if (!resolvers.length) {
-      throw new ParamNotResolveable(`Class ${Type.name} has no registered resolvers.`);
+      throw new ParamNotResolveable(
+        `Class ${Type.name} has no registered resolvers.`,
+      );
     }
     for (let i = 0, n = resolvers.length; i < n; i++) {
       const resolution = await resolvers[i](ctx, Type);

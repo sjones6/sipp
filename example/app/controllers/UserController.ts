@@ -14,7 +14,7 @@ import {
   transacting,
   ApplyAll,
 } from '@src/index';
-import { UsersList, ShowUser } from './Users';
+import { UsersList, ShowUserView } from './Users';
 
 @ApplyAll(transacting)
 export class UsersController extends Controller {
@@ -32,15 +32,10 @@ export class UsersController extends Controller {
   }
 
   @Get('/:user', { name: 'get-user' })
-  public async getUser(
-    user: User,
-    logger: Logger,
-    session: Session,
-    ctx: RequestContext,
-  ) {
+  public async getUser(user: User, logger: Logger, session: Session) {
     logger.debug(`getting user ${user.id}`);
     session.flash('welcome', `Hi, ${user.email}!`);
-    return ShowUser(user, ctx);
+    return new ShowUserView(user);
   }
 
   @Get('/:user/download', { name: 'download-user' })

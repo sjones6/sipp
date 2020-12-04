@@ -16,7 +16,12 @@ export function withParamResolution(fn, target, key) {
 
     const realArgs = [];
     for (let i = 0, n = types.length; i < n; i++) {
-      const param = await resolver.resolve(types[i], ctx);
+      const Type = types[i];
+      // an unspecified param type has a type of Object emitted in it's design:paramtypes
+      const param =
+        Type === Object || arguments[i] instanceof Type
+          ? arguments[i]
+          : await resolver.resolve(types[i], ctx);
       if (!param) {
         throw new ParamNotResolveable(
           `Param of ${types[i].name} could not be resolved. Be sure there is a registered resolver for this class`,

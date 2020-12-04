@@ -7,6 +7,6 @@ import { Foo } from './utils/Foo';
 App.bootstrap(config)
   .withControllers(...controllers)
   .withResolver((resolver) => {
-    resolver.addResolver(Foo, () => new Foo())
+    resolver.addResolver(Foo, () => new Foo());
   })
   .listen();

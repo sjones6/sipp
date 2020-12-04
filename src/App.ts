@@ -30,6 +30,7 @@ import {
   JSONResponse,
   NoContentResponse,
   CONTEXT_KEY,
+  View,
 } from './http';
 import { Transaction } from 'objection';
 import { IAppConfig, IMiddlewareFunc } from './interfaces';
@@ -98,14 +99,6 @@ export class App {
     // wire default handling of payloads, req id, logging, method override
     this.withGlobalMiddleware(
       reqInfoLoggingMiddleware,
-
-      // expose 2 bits of context to the request store:
-      // the resolver and the request context
-      (req: Request, res: Response) => {
-        const store = getStore();
-        store.set(RESOLVER_KEY, this.resolver);
-        store.set(CONTEXT_KEY, this.createRequestContext(req, res));
-      },
       express.json(),
       express.urlencoded({ extended: true }),
       methodOverride('_method'),
@@ -134,6 +127,16 @@ export class App {
         next();
       });
     }
+
+    this.withMiddleware(
+      // expose 2 bits of context to the request store:
+      // the resolver and the request context
+      (req: Request, res: Response) => {
+        const store = getStore();
+        store.set(RESOLVER_KEY, this.resolver);
+        store.set(CONTEXT_KEY, this.createRequestContext(req, res));
+      },
+    );
 
     return this;
   }
@@ -270,20 +273,33 @@ export class App {
               async (req: Request, res: Response) => {
                 req.logger.debug('start controller handling');
                 const ctx = this.createRequestContext(req, res);
-                const controllerReponse = await controller[method](ctx).then(
-                  async (controllerReponse) => {
+                const controllerReponse = await Promise.resolve(
+                  controller[method](ctx),
+                )
+                  .then(async (response) => {
+                    if (
+                      (response && response.prototype instanceof View) ||
+                      response instanceof View
+                    ) {
+                      return (response as View).renderToHtml(ctx);
+                    }
+                    return response;
+                  })
+                  .then(async (response) => {
                     const store = getStore();
                     const trx = store.get(TRANSACTION_KEY) as Transaction;
                     if (trx && !trx.isCompleted()) {
                       req.logger.info('transaction commit');
                       await trx.commit();
                     }
-                    return controllerReponse;
-                  },
-                ).catch(err => {
-                  req.logger.debug(`controller response threw an error, ${err.message}`);
-                  throw err;
-                });
+                    return response;
+                  })
+                  .catch((err) => {
+                    req.logger.debug(
+                      `controller response threw an error, ${err.message}`,
+                    );
+                    throw err;
+                  });
                 req.logger.debug('end controller handling');
                 if (!res.headersSent) {
                   this.handleControllerResponse(controllerReponse, ctx);

@@ -19,7 +19,7 @@ export { RESOLVER_KEY };
 async function resolveModel(ctx: RequestContext, Type: any): Promise<Model> {
   const requestMethod = ctx.method;
   let model;
-  switch (requestMethod) {
+  switch (requestMethod.toLowerCase()) {
     case RequestMethod.GET:
     case RequestMethod.PATCH:
     case RequestMethod.PUT:
@@ -67,11 +67,14 @@ export function resolverFactory(): Resolver {
   });
 
   resolver.addResolver<Old>(Old, (ctx: RequestContext, Type) => ctx.old);
-  resolver.addResolver<Url>(Query, (ctx: RequestContext) => ctx.url);
-  resolver.addResolver<Session>(Query, (ctx: RequestContext) => ctx.session);
-  resolver.addResolver<Model>(Query, resolveModel);
+  resolver.addResolver<Url>(Url, (ctx: RequestContext) => ctx.url);
+  resolver.addResolver<Session>(Session, (ctx: RequestContext) => ctx.session);
+  resolver.addResolver<Model>(Model, resolveModel);
   resolver.addResolver<Logger>(Logger, (ctx: RequestContext) => ctx.logger);
-  resolver.addResolver<RequestContext>(RequestContext, (ctx: RequestContext) => ctx);
+  resolver.addResolver<RequestContext>(
+    RequestContext,
+    (ctx: RequestContext) => ctx,
+  );
 
   return resolver;
 }

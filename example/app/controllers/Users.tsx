@@ -1,4 +1,4 @@
-import { h, RequestContext } from '@src/index';
+import { h, RequestContext, Resolve, Session, Url, View } from '@src/index';
 import { User } from '../models/User';
 
 export function UsersList(users: User[], ctx: RequestContext) {
@@ -49,15 +49,23 @@ export function UsersList(users: User[], ctx: RequestContext) {
   );
 }
 
-export function ShowUser(user: User, ctx: RequestContext) {
-  return (
-    <div>
-      {ctx.session.getFlash('success').map((msg) => (
-        <h1>{msg}</h1>
-      ))}
-      <a href="/users">List Users</a>
-      <h1>{user.email}</h1>
-      <a href={ctx.url.alias('download-user', { user: user.id })}>Download</a>
-    </div>
-  );
+export class ShowUserView extends View {
+  constructor(private readonly user: User) {
+    super();
+  }
+
+  @Resolve()
+  render(h, session: Session, url: Url) {
+    const { user } = this;
+    return (
+      <div>
+        {session.getFlash('success').map((msg) => (
+          <h1>{msg}</h1>
+        ))}
+        <a href="/users">List Users</a>
+        <h1>{user.email}</h1>
+        <a href={url.alias('download-user', { user: user.id })}>Download</a>
+      </div>
+    );
+  }
 }
