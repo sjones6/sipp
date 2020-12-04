@@ -29,7 +29,7 @@ export const h = (tagName: Function | string, props?: object, ...children) => {
     return tagName({ ...props, children });
   }
 
-  let stringifiedChildren: string = children.map(stringifyChildren).join('\n');
+  let stringifiedChildren: string = children.map(stringifyChildren).join('');
   let stringifiedProps: string = '';
   if (props) {
     stringifiedProps = Object.entries(props)
