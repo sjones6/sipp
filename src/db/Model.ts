@@ -1,4 +1,5 @@
 import { Model as M, Transaction, QueryBuilder } from 'objection';
+import { STORAGE } from 'src/constants';
 import { getStore } from '../utils/async-store';
 import {
   IValidator,
@@ -6,8 +7,6 @@ import {
   validateSync,
   ValidationErrorCollection,
 } from '../validation';
-
-export const TRANSACTION_KEY = 'transaction-storage-key';
 
 export class Model extends M implements IValidator {
   static modelName() {
@@ -31,22 +30,25 @@ export class Model extends M implements IValidator {
   }
   static query(trx?: Transaction) {
     const store = getStore();
-    return M.query.bind(this)(trx || store.get(TRANSACTION_KEY));
+    return M.query.bind(this)(trx || store.get(STORAGE.TRANSACTION_KEY));
   }
   static relatedQuery(relationName: any, trx?: Transaction) {
     const store = getStore();
     return M.relatedQuery.bind(this)(
       relationName,
-      trx || store.get(TRANSACTION_KEY),
+      trx || store.get(STORAGE.TRANSACTION_KEY),
     );
   }
   public $query(trx?: Transaction) {
     const store = getStore();
-    return super.$query(trx || store.get(TRANSACTION_KEY));
+    return super.$query(trx || store.get(STORAGE.TRANSACTION_KEY));
   }
   public $relatedQuery(relationName: any, trx?: Transaction) {
     const store = getStore();
-    return super.$relatedQuery(relationName, trx || store.get(TRANSACTION_KEY));
+    return super.$relatedQuery(
+      relationName,
+      trx || store.get(STORAGE.TRANSACTION_KEY),
+    );
   }
   public save(): Promise<Model> {
     return this.$query().insert();

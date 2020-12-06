@@ -5,7 +5,7 @@ import {
   RequestMethod,
   PATH_OPTION_METADATA,
 } from '../constants';
-import { withParamResolution } from './Resolve';
+import { withParamProviding } from './Provide';
 
 interface PathOptions {
   name?: string;
@@ -38,7 +38,7 @@ export const RequestMapping = (
     const ROUTES = Reflect.getMetadata(ROUTES_METADATA, target) || {};
     ROUTES[key] = 1;
 
-    descriptor.value = withParamResolution(descriptor.value, target, key);
+    descriptor.value = withParamProviding(descriptor.value, target, key);
 
     Reflect.defineMetadata(ROUTES_METADATA, ROUTES, target);
     Reflect.defineMetadata(PATH_METADATA, path, target, key);

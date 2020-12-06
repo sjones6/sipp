@@ -1,9 +1,10 @@
+import { STORAGE } from 'src/constants';
 import { ParamNotResolveable } from '../exceptions/ParamNotResolveable';
-import { RESOLVER_KEY, Resolver } from '../framework/container/Resolver';
-import { CONTEXT_KEY, RequestContext } from '../http';
+import { Resolver } from '../framework/container/Resolver';
+import { RequestContext } from '../http';
 import { getStore } from '../utils/async-store';
 
-export function withParamResolution(fn, target, key) {
+export function withParamProviding(fn, target, key) {
   return async function () {
     let types = Reflect.getMetadata('design:paramtypes', target, key) || [];
     if (!types.length) {
@@ -11,8 +12,8 @@ export function withParamResolution(fn, target, key) {
     }
 
     const store = getStore();
-    const ctx = store.get(CONTEXT_KEY) as RequestContext;
-    const resolver = store.get(RESOLVER_KEY) as Resolver;
+    const ctx = store.get(STORAGE.CONTEXT_KEY) as RequestContext;
+    const resolver = store.get(STORAGE.RESOLVER_KEY) as Resolver;
 
     const realArgs = [];
     for (let i = 0, n = types.length; i < n; i++) {
@@ -21,7 +22,7 @@ export function withParamResolution(fn, target, key) {
       const param =
         Type === Object || arguments[i] instanceof Type
           ? arguments[i]
-          : await resolver.resolve(types[i], ctx);
+          : await resolver.resolve(target, types[i], ctx);
       if (!param) {
         throw new ParamNotResolveable(
           `Param of ${types[i].name} could not be resolved. Be sure there is a registered resolver for this class`,
@@ -33,13 +34,13 @@ export function withParamResolution(fn, target, key) {
   };
 }
 
-export const Resolve = (): MethodDecorator => {
+export const Provide = (): MethodDecorator => {
   return (
     target: object,
     key: string | symbol,
     descriptor: TypedPropertyDescriptor<any>,
   ) => {
-    descriptor.value = withParamResolution(descriptor.value, target, key);
+    descriptor.value = withParamProviding(descriptor.value, target, key);
     return descriptor;
   };
 };

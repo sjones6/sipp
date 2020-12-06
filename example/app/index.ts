@@ -2,11 +2,13 @@ import 'module-alias/register';
 import { App } from '@src/index';
 import controllers from './controllers';
 import { config } from './config';
-import { Foo } from './utils/Foo';
+import { FooServiceProvider } from './providers/FooServiceProvider';
+import { ViewServiceProvider } from './providers/ViewServiceProvider';
 
-App.bootstrap(config)
-  .withControllers(...controllers)
-  .withResolver((resolver) => {
-    resolver.addResolver(Foo, () => new Foo());
-  })
-  .listen();
+const app = App.bootstrap(config);
+
+app.withControllers(...controllers).withProviders(new FooServiceProvider(), new ViewServiceProvider());
+
+app.wire().then(() => {
+  app.listen();
+});

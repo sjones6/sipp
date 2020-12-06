@@ -5,8 +5,6 @@ import { Body, Headers, Params, Query, Old } from './Req';
 import { Session } from './Session';
 import { Url } from './Url';
 
-export const CONTEXT_KEY = 'context-storage-key';
-
 export class RequestContext {
   public readonly body: Body;
   public readonly headers: Headers;

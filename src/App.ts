@@ -1,4 +1,5 @@
 import 'dotenv';
+import { Server } from 'http';
 import initModuleAlias from 'module-alias';
 import express, { Request, Response, NextFunction } from 'express';
 import session from 'express-session';
@@ -13,6 +14,7 @@ import {
   MIDDLEWARE_METADATA,
   CONTROLLER_MIDDLEWARE_METADATA,
   PATH_OPTION_METADATA,
+  STORAGE,
 } from './constants';
 import { Controller } from './Controller';
 import { Connection } from './db/Connection';
@@ -29,7 +31,6 @@ import {
   HTTPResponse,
   JSONResponse,
   NoContentResponse,
-  CONTEXT_KEY,
   View,
 } from './http';
 import { Transaction } from 'objection';
@@ -38,12 +39,11 @@ import { RouteMapper } from './routing/RouteMapper';
 import logger, { Logger } from './logger';
 import { Download } from './http/response/download';
 import { getStore } from './utils/async-store';
-import { Model, TRANSACTION_KEY } from './db';
 import { Resolver } from './framework/container/Resolver';
-import {
-  resolverFactory,
-  RESOLVER_KEY,
-} from './framework/container/resolver-factory';
+import { ServiceProvider } from './framework/services/ServiceProvider';
+import { ParamResolutionProvider } from './services/ParamResolutionProvider';
+import { ServiceRegistry } from './framework/container/ServiceRegistry';
+import { ModelResolutionProvider } from './services/ModelResolutionProvider';
 
 // initializes the module-alias processing with the root same as the process working directory
 initModuleAlias(process.cwd());
@@ -59,6 +59,7 @@ const CTX_SYMBOL = Symbol('ctx');
 export class App {
   private app: express.Application;
   private controllers: Controller[] = [];
+  private providers: ServiceProvider[] = [];
   private globalMiddleware: IMiddlewareFunc[] = [];
   private middleware: IMiddlewareFunc[] = [];
   private exceptionHandler: ExceptionHandler;
@@ -67,6 +68,7 @@ export class App {
   private readonly config: IAppConfig;
   private readonly logger: Logger;
   private readonly resolver: Resolver;
+  private readonly serviceRegistry: ServiceRegistry = new ServiceRegistry();
 
   constructor(
     app: express.Application,
@@ -83,13 +85,10 @@ export class App {
     this.exceptionHandler = new ExceptionHandler(this.logger);
     this.routeMapper = new RouteMapper();
     this.connection = new Connection(this.config);
-    this.resolver = resolverFactory();
+    this.resolver = new Resolver(this.serviceRegistry);
   }
 
-  static bootstrap<User extends Model>(
-    config?: IAppConfig,
-    controllers?: Controller[],
-  ): App {
+  static bootstrap(config?: IAppConfig, controllers?: Controller[]): App {
     return new App(express(), config, controllers).init();
   }
 
@@ -133,9 +132,14 @@ export class App {
       // the resolver and the request context
       (req: Request, res: Response) => {
         const store = getStore();
-        store.set(RESOLVER_KEY, this.resolver);
-        store.set(CONTEXT_KEY, this.createRequestContext(req, res));
+        store.set(STORAGE.RESOLVER_KEY, this.resolver);
+        store.set(STORAGE.CONTEXT_KEY, this.createRequestContext(req, res));
       },
+    );
+
+    this.withProviders(
+      new ParamResolutionProvider(),
+      new ModelResolutionProvider(),
     );
 
     return this;
@@ -177,6 +181,15 @@ export class App {
   }
 
   /**
+   * Add a set of providers
+   */
+  public withProviders(...providers: ServiceProvider[]): App {
+    this.logger.debug('adding controllers');
+    this.providers.push(...providers);
+    return this;
+  }
+
+  /**
    * Override the default exception handler with one of your own
    */
   public withExceptionHandler(handler: ExceptionHandler): App {
@@ -185,11 +198,16 @@ export class App {
     return this;
   }
 
-  /**
-   * Turn the lights on
-   */
-  public listen() {
-    // db
+  public async wire() {
+    // init service providers
+    await Promise.all(this.providers.map((provider) => provider.init()));
+
+    // register providers
+    this.providers.forEach((provider) => {
+      provider.register(this.serviceRegistry);
+    });
+
+    // db //
     this.connection.connect();
 
     // global middlewares
@@ -209,7 +227,12 @@ export class App {
         this.onException(err, this.createRequestContext(req, res), next);
       },
     );
+  }
 
+  /**
+   * Turn the lights on
+   */
+  public listen(): Server {
     // attach the HTTP server to the specified port
     return this.app.listen(this.config.port, () => {
       this.logger.debug(
@@ -287,7 +310,9 @@ export class App {
                   })
                   .then(async (response) => {
                     const store = getStore();
-                    const trx = store.get(TRANSACTION_KEY) as Transaction;
+                    const trx = store.get(
+                      STORAGE.TRANSACTION_KEY,
+                    ) as Transaction;
                     if (trx && !trx.isCompleted()) {
                       req.logger.info('transaction commit');
                       await trx.commit();
@@ -310,7 +335,9 @@ export class App {
             async (err: Error, req: Request, res: Response, next) => {
               try {
                 // handle transaction rollbash, if any
-                const trx = getStore().get(TRANSACTION_KEY) as Transaction;
+                const trx = getStore().get(
+                  STORAGE.TRANSACTION_KEY,
+                ) as Transaction;
                 if (trx && !trx.isCompleted()) {
                   req.logger.info('rolling back transaction');
                   await trx.rollback().catch((rollbackError) => {
