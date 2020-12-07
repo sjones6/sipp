@@ -1,6 +1,6 @@
 {
   "name": "@sjones6/sipp",
-  "version": "0.0.33",
+  "version": "0.0.34",
   "description": "",
   "repository": "git://github.com/sjones6/sipp.git",
   "main": "dist/index.js",
