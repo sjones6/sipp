@@ -1,12 +1,7 @@
 import { BaseException } from './exceptions';
-import {
-  Download,
-  Downloadable,
-  RequestContext,
-  HTTPRedirect,
-  ResponseBody,
-} from './http';
+import { Download, Downloadable, HTTPRedirect, ResponseBody } from './http';
 import { ReadStream } from 'fs';
+import { Request, Response } from 'express';
 
 export class Controller {
   public readonly basePath: string | null = null;
@@ -31,7 +26,8 @@ export class Controller {
    */
   public onException(
     e: BaseException,
-    ctx: RequestContext,
+    req: Request,
+    res: Response,
   ): false | ResponseBody {
     return false;
   }

@@ -1,30 +1,40 @@
-import { Request, Response } from 'express';
 import { RouteMapper, METHOD, IQuery } from '../../routing/RouteMapper';
-import { Body } from './Req';
-import { Session } from './Session';
 import { join, parse } from 'path';
 import { readdirSync } from 'fs';
 
+/**
+ * @class
+ */
 export class Url {
-  private readonly dirMap: Map<string, string[]>;
-
   constructor(
-    private readonly req: Request,
-    private readonly res: Response,
-    private readonly session: Session,
-    private readonly body: Body,
     private readonly staticPath: string,
     private readonly routeMapper: RouteMapper,
-  ) {
-    this.dirMap = new Map();
-  }
+  ) {}
 
+  /**
+   * Resolve a route alias into a qualified URL
+   * 
+   * @param name alias name
+   * @param params route params to splice into the route
+   * @param query something that can be stringified into query params
+   * @param method method to append if not POST or GET
+   */
   public alias(name: string, params?: object, query?: IQuery, method?: METHOD) {
     return this.routeMapper.resolve(name, params, query, method);
   }
 
-  public url(name: string, params?: object, query?: IQuery, method?: METHOD) {
-    return this.routeMapper.construcUrl(name.split('/'), params, query, method);
+  /**
+   * Construct an arbitrary url
+   * 
+   * @param relativeUrl a url (not including protocol)
+   * @param params route params to splice into the route
+   * @param query something that can be stringinfied as a query
+   * @param method enum of a method to append (for the method-rewriting)
+   * 
+   * @return the qualified url
+   */
+  public url(relativeUrl: string, params?: object, query?: IQuery, method?: METHOD) {
+    return this.routeMapper.construcUrl(relativeUrl.split('/'), params, query, method);
   }
 
   /**
@@ -35,7 +45,6 @@ export class Url {
     const { dir, base } = parse(absPath);
     if (base.indexOf('[hash]')) {
       const directoryContents = readdirSync(dir);
-      this.dirMap.set(dir, directoryContents);
       const parts = base.split('[hash]');
       const re = new RegExp(`^${parts[0]}.+${parts[1]}$`);
       const hashedFile = directoryContents.find((filePath) =>
@@ -49,6 +58,7 @@ export class Url {
   /**
    * @param path a asset path relative to the static path defined in the app config
    * @param defer
+   * @return a fully constructed script tag
    */
   scriptTag(filePath: string, defer: boolean = true): string {
     let scriptPath = filePath;
@@ -63,6 +73,7 @@ export class Url {
 
   /**
    * @param path a asset path relative to the static path defined in the app config
+   * @return a fully constructed style tag
    */
   styleTag(filePath: string) {
     let stylePath = filePath;
@@ -73,10 +84,5 @@ export class Url {
       stylePath = `${dir.replace(this.staticPath, '')}${name}.css`;
     }
     return `<link rel="stylesheet" href="${stylePath}">`;
-  }
-
-  back() {
-    this.session.flash('__old__', JSON.stringify(this.body.getOriginal()));
-    this.res.redirect(302, this.req.get('Referrer'));
   }
 }

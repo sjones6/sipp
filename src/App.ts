@@ -25,13 +25,13 @@ import {
 } from './exceptions';
 import {
   reqInfoLoggingMiddleware,
-  RequestContext,
   DownloadResponse,
   HTMLResponse,
   HTTPResponse,
   JSONResponse,
   NoContentResponse,
   View,
+  Middleware,
 } from './http';
 import { Transaction } from 'objection';
 import { IAppConfig, IMiddlewareFunc } from './interfaces';
@@ -39,11 +39,14 @@ import { RouteMapper } from './routing/RouteMapper';
 import logger, { Logger } from './logger';
 import { Download } from './http/response/download';
 import { getStore } from './utils/async-store';
-import { Resolver } from './framework/container/Resolver';
 import { ServiceProvider } from './framework/services/ServiceProvider';
-import { ParamResolutionProvider } from './services/ParamResolutionProvider';
-import { ServiceRegistry } from './framework/container/ServiceRegistry';
-import { ModelResolutionProvider } from './services/ModelResolutionProvider';
+import {
+  ParamResolutionProvider,
+  ModelResolutionProvider,
+  RouteMappingProvider,
+  UrlProvider,
+} from './services';
+import { registry } from './framework/services/ServiceRegistry';
 
 // initializes the module-alias processing with the root same as the process working directory
 initModuleAlias(process.cwd());
@@ -67,8 +70,6 @@ export class App {
   private readonly connection: Connection;
   private readonly config: IAppConfig;
   private readonly logger: Logger;
-  private readonly resolver: Resolver;
-  private readonly serviceRegistry: ServiceRegistry = new ServiceRegistry();
 
   constructor(
     app: express.Application,
@@ -85,7 +86,6 @@ export class App {
     this.exceptionHandler = new ExceptionHandler(this.logger);
     this.routeMapper = new RouteMapper();
     this.connection = new Connection(this.config);
-    this.resolver = new Resolver(this.serviceRegistry);
   }
 
   static bootstrap(config?: IAppConfig, controllers?: Controller[]): App {
@@ -132,30 +132,32 @@ export class App {
       // the resolver and the request context
       (req: Request, res: Response) => {
         const store = getStore();
-        store.set(STORAGE.RESOLVER_KEY, this.resolver);
-        store.set(STORAGE.CONTEXT_KEY, this.createRequestContext(req, res));
+        store.set(STORAGE.REQ_KEY, req);
       },
     );
 
     this.withProviders(
       new ParamResolutionProvider(),
       new ModelResolutionProvider(),
+      new RouteMappingProvider(this.routeMapper),
+      new UrlProvider(this.config.static, this.routeMapper),
     );
 
-    return this;
-  }
-
-  public withResolver(cb: (resolver: Resolver) => void): App {
-    cb(this.resolver);
     return this;
   }
 
   /**
    * Add a set of global middlewares
    */
-  public withMiddleware(...middleware: Array<IMiddlewareFunc>): App {
+  public withMiddleware(
+    ...middleware: Array<IMiddlewareFunc | Middleware>
+  ): App {
     this.logger.debug('adding middleware');
-    this.middleware.push(...middleware);
+    this.middleware.push(
+      ...middleware.map((middleware) =>
+        middleware instanceof Middleware ? middleware.bind() : middleware,
+      ),
+    );
     return this;
   }
 
@@ -165,9 +167,15 @@ export class App {
    * Global middleware do not report errors to controller
    * exception handlers
    */
-  public withGlobalMiddleware(...middleware: Array<IMiddlewareFunc>): App {
+  public withGlobalMiddleware(
+    ...middleware: Array<IMiddlewareFunc | Middleware>
+  ): App {
     this.logger.debug('adding global middleware');
-    this.globalMiddleware.push(...middleware);
+    this.globalMiddleware.push(
+      ...middleware.map((middleware) =>
+        middleware instanceof Middleware ? middleware.bind() : middleware,
+      ),
+    );
     return this;
   }
 
@@ -203,11 +211,9 @@ export class App {
     await Promise.all(this.providers.map((provider) => provider.init()));
 
     // register providers
-    this.providers.forEach((provider) => {
-      provider.register(this.serviceRegistry);
-    });
+    registry.registerProviders(this.providers);
 
-    // db //
+    // db
     this.connection.connect();
 
     // global middlewares
@@ -224,7 +230,7 @@ export class App {
     // error handler
     this.app.use(
       (err: Error, req: Request, res: Response, next: NextFunction) => {
-        this.onException(err, this.createRequestContext(req, res), next);
+        this.onException(err, req, res, next);
       },
     );
   }
@@ -295,9 +301,8 @@ export class App {
               ...(methodMiddleware || []), // method handler middleware
               async (req: Request, res: Response) => {
                 req.logger.debug('start controller handling');
-                const ctx = this.createRequestContext(req, res);
                 const controllerReponse = await Promise.resolve(
-                  controller[method](ctx),
+                  controller[method](req, res),
                 )
                   .then(async (response) => {
                     if (
@@ -327,9 +332,9 @@ export class App {
                   });
                 req.logger.debug('end controller handling');
                 if (!res.headersSent) {
-                  this.handleControllerResponse(controllerReponse, ctx);
+                  this.handleControllerResponse(controllerReponse, req, res);
                 }
-                this.afterResponse(ctx);
+                this.afterResponse(req, res);
               },
             ),
             async (err: Error, req: Request, res: Response, next) => {
@@ -347,9 +352,8 @@ export class App {
                   });
                 }
                 // do error handling
-                const ctx = this.createRequestContext(req, res);
-                this.onException(err, ctx, next, controller);
-                this.afterResponse(ctx);
+                this.onException(err, req, res, next, controller);
+                this.afterResponse(req, res);
               } catch (err) {
                 next(err);
               }
@@ -380,27 +384,13 @@ export class App {
   }
 
   /**
-   * Create a full-request context for a state-less request
-   */
-  private createRequestContext(req: Request, res: Response): RequestContext {
-    if (!req[CTX_SYMBOL]) {
-      req[CTX_SYMBOL] = new RequestContext(
-        req,
-        res,
-        this.routeMapper,
-        this.config.static,
-      );
-    }
-    return req[CTX_SYMBOL];
-  }
-
-  /**
    * Handle exceptions thrown throughout the lifecycle of the application,
    * including 404s, errors thrown in controllers, etc.
    */
   private onException(
     err: Error | BaseException,
-    ctx: RequestContext,
+    req: Request,
+    res: Response,
     next: NextFunction,
     controller?: Controller,
   ) {
@@ -410,13 +400,13 @@ export class App {
     if (controller) {
       try {
         const controllerReponse =
-          controller && controller.onException(exception, ctx);
+          controller && controller.onException(exception, req, res);
         if (controllerReponse !== false) {
-          this.handleControllerResponse(controllerReponse, ctx);
+          this.handleControllerResponse(controllerReponse, req, res);
           handled = true;
         }
       } catch (err) {
-        ctx.logger.error(
+        req.logger.error(
           `${controller.constructor.name} threw handling error, ${err.message}`,
         );
       }
@@ -427,7 +417,7 @@ export class App {
       try {
         this.exceptionHandler.reportHandledException(exception);
       } catch (err) {
-        const logger = ctx.logger || this.logger;
+        const logger = req.logger || this.logger;
         logger.error(
           `exception handler threw reporting handled exception, ${err.message}`,
         );
@@ -435,13 +425,13 @@ export class App {
     } else {
       // the application level exception handler should do it
       if (
-        !this.exceptionHandler.handle(exception, ctx) ||
-        !ctx.res.headersSent
+        !this.exceptionHandler.handle(exception, req, res) ||
+        !res.headersSent
       ) {
         try {
           this.exceptionHandler.reportUnhandledException(exception);
         } catch (err) {
-          const logger = ctx.logger || this.logger;
+          const logger = req.logger || this.logger;
           logger.error(
             `exception handler threw reporting unhandled exception, ${err.message}`,
           );
@@ -495,13 +485,14 @@ export class App {
 
   private handleControllerResponse(
     controllerReponse,
-    ctx: RequestContext,
+    req: Request,
+    res: Response,
   ): void {
     const reply: HTTPResponse<any> = this.resolveControllerResponse(
       controllerReponse,
     );
-    reply.handle(ctx);
-    ctx.req.logger.debug('response sent');
+    reply.handle(req, res);
+    req.logger.debug('response sent');
   }
 
   private resolveControllerResponse(controllerReponse: any): HTTPResponse<any> {
@@ -529,8 +520,7 @@ export class App {
     }
   }
 
-  private afterResponse(ctx: RequestContext) {
-    const { req, res } = ctx;
+  private afterResponse(req: Request, res: Response) {
     req.logger.addScope({
       status: res.statusCode,
     });

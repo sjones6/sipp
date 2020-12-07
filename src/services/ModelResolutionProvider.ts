@@ -1,17 +1,19 @@
-import { RequestContext } from '../http';
 import { Controller } from '../Controller';
-import { ServiceRegistry } from '../framework/container/ServiceRegistry';
-import { ServiceProvider } from '../framework/services/ServiceProvider';
+import { ServiceProvider } from '../framework';
 import { Model } from '../db';
-import { RequestMethod } from '../constants';
+import { RequestMethod, STORAGE } from '../constants';
+import { IServiceRegistryFn } from '../interfaces';
+import { getStore } from '../utils/async-store';
+import { Middleware } from '../http';
 
 export class ModelResolutionProvider extends ServiceProvider {
-  register(registry: ServiceRegistry) {
-    registry.registerFor<Model>(
-      Controller,
+  register(register: IServiceRegistryFn) {
+    register(
+      [Controller, Middleware],
       Model,
-      async (ctx: RequestContext, Type: any, ): Promise<Model | undefined> => {
-        const requestMethod = ctx.method;
+      async (resolve, Type: any): Promise<Model | undefined> => {
+        const req = getStore().get(STORAGE.REQ_KEY);
+        const requestMethod = req.method;
         let model;
         switch (requestMethod.toLowerCase()) {
           case RequestMethod.GET:
@@ -21,7 +23,7 @@ export class ModelResolutionProvider extends ServiceProvider {
             // look for an id in the params
             const name = Type.modelName();
             const id =
-              (ctx.params[name] ? ctx.params[name] : null) || ctx.params['id'];
+              (req.params[name] ? req.params[name] : null) || req.params['id'];
             model = await Type.load().findById(id);
           case RequestMethod.GET:
           case RequestMethod.DELETE:
@@ -33,9 +35,9 @@ export class ModelResolutionProvider extends ServiceProvider {
           case RequestMethod.POST:
             const fillable = Type.fillable ? Type.fillable() : [];
             if (fillable.length) {
-              Object.keys(ctx.body).forEach((key) => {
+              Object.keys(req.body).forEach((key) => {
                 if (fillable.includes(key)) {
-                  model[key] = ctx.body[key];
+                  model[key] = req.body[key];
                 }
               });
             }

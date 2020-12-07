@@ -1,22 +1,21 @@
 import { Foo } from '../utils/Foo';
-import { Controller, Get, RequestContext } from '@src/index';
+import { Controller, Get, Query, Req, Session, Url } from '@src/index';
 
 export class HomeController extends Controller {
   public basePath = '';
 
   @Get('/', { name: 'home' })
-  public getHome(ctx: RequestContext, foo: Foo) {
-    const { req } = ctx;
+  public getHome(url: Url, session: Session, query: Query, req: Req, foo: Foo) {
     return {
       path: req.path,
       method: req.method,
-      home: ctx.url.alias('home'),
-      user: ctx.url.alias('get-user', { user: 1 }),
-      arbitrary: ctx.url.url('/some/path/:id', { id: 2 }, { foo: 2 }, 'patch'),
-      flash: ctx.session.getFlash('info'),
-      query: ctx.query,
+      home: url.alias('home'),
+      user: url.alias('get-user', { user: 1 }),
+      arbitrary: url.url('/some/path/:id', { id: 2 }, { foo: 2 }, 'patch'),
+      flash: session.getFlash('info'),
+      query: query,
       ts: Date.now(),
-      reqId: ctx.req.id,
+      reqId: req.id,
       id: foo.name,
     };
   }

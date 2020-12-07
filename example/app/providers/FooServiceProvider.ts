@@ -1,11 +1,10 @@
 import { Foo } from '../utils/Foo';
-import { ServiceRegistry } from '@src/framework/container/ServiceRegistry';
 import { ServiceProvider } from '@src/framework/services/ServiceProvider';
-import { RequestContext } from '@src/http';
+import { IServiceRegistryFn } from '@src/index';
 
 export class FooServiceProvider extends ServiceProvider {
-  register(registry: ServiceRegistry): void {
-    registry.registerFor<Foo>('*', Foo, () => {
+  register(register: IServiceRegistryFn): void {
+    register('*', Foo, () => {
       return new Foo();
     });
   }

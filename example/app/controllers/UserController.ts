@@ -9,7 +9,6 @@ import {
   NotFoundException,
   Post,
   Session,
-  RequestContext,
   Apply,
   transacting,
   ApplyAll,
@@ -19,8 +18,8 @@ import { UsersList, ShowUserView } from './Users';
 @ApplyAll(transacting)
 export class UsersController extends Controller {
   @Get()
-  public async listUsers(ctx: RequestContext): Promise<string> {
-    return UsersList(await User.query(), ctx);
+  public async listUsers(): Promise<UsersList> {
+    return new UsersList(await User.query());
   }
 
   @Post('/', { name: 'user.create' })
@@ -54,8 +53,6 @@ export class UsersController extends Controller {
     switch (true) {
       case e instanceof NotFoundException:
         return { lost: true };
-      default:
-        return this.redirect(`/users`);
     }
   }
 }

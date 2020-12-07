@@ -1,61 +1,74 @@
+import { IServiceRegistryFn } from '../interfaces';
 import { Controller } from '../Controller';
-import { ServiceProvider } from '../framework/services/ServiceProvider';
-import { ServiceRegistry } from '../framework/container/ServiceRegistry';
-
+import { ServiceProvider } from '../framework';
 import {
   Body,
   Headers,
-  Old,
   Params,
   Query,
-  RequestContext,
   Session,
-  Url,
+  Req,
+  Res,
   View,
+  Csrf,
+  Middleware,
 } from '../http';
 import { Logger } from '../logger';
+import { getStore } from '../utils/async-store';
+import { STORAGE } from 'src/constants';
+import { Request } from 'express';
 
 export class ParamResolutionProvider extends ServiceProvider {
-  public register(registry: ServiceRegistry): void {
-    registry.registerFor<Body>(
-      [Controller, View],
+  public register(register: IServiceRegistryFn): void {
+    // controller only
+    register([Controller, Middleware], Res, () => {
+      const req = this.withRequest();
+      return new Res(req, req.res);
+    });
+    register([Controller, Middleware], Req, () => {
+      const req = this.withRequest();
+      return new Req(req);
+    });
+
+    // controller and view
+    register(
+      [Controller, Middleware, View],
       Body,
-      (ctx: RequestContext) => ctx.body,
+      () => new Body(this.withRequest().body),
     );
-    registry.registerFor<Headers>(
-      [Controller, View],
+    register(
+      [Controller, Middleware, View],
       Headers,
-      (ctx: RequestContext) => ctx.headers,
+      () => new Headers(this.withRequest().headers),
     );
-    registry.registerFor<Params>(
-      [Controller, View],
+    register(
+      [Controller, Middleware, View],
       Params,
-      (ctx: RequestContext) => ctx.params,
+      () => new Params(this.withRequest().params),
     );
-    registry.registerFor<Query>(
-      [Controller, View],
+    register(
+      [Controller, Middleware, View],
       Query,
-      (ctx: RequestContext) => ctx.query,
+      () => new Query(this.withRequest().query),
     );
-    registry.registerFor<Old>(
-      [Controller, View],
-      Old,
-      (ctx: RequestContext) => ctx.old,
-    );
-    registry.registerFor<Url>(
-      [Controller, View],
-      Url,
-      (ctx: RequestContext) => ctx.url,
-    );
-    registry.registerFor<Session>(
-      [Controller, View],
+    register(
+      [Controller, Middleware, View],
       Session,
-      (ctx: RequestContext) => ctx.session,
+      () => new Session(this.withRequest()),
     );
-    registry.registerFor<Logger>(
-      [Controller, View],
+    register(
+      [Controller, Middleware, View],
       Logger,
-      (ctx: RequestContext) => ctx.logger,
+      () => this.withRequest().logger,
     );
+    register(
+      [Controller, Middleware, View],
+      Csrf,
+      () => new Csrf(this.withRequest()),
+    );
+  }
+
+  private withRequest(): Request {
+    return getStore().get(STORAGE.REQ_KEY);
   }
 }

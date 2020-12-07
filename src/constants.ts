@@ -9,9 +9,8 @@ export const enum RequestMethod {
 }
 
 export const enum STORAGE {
-  RESOLVER_KEY = '__RESOLVER_KEY__',
+  REQ_KEY = '__REQ_KEY__',
   TRANSACTION_KEY = '__TRANSACTION_KEY__',
-  CONTEXT_KEY = '__REQ_CONTEXT_KEY__',
 }
 
 export const PATH_METADATA = '__PATH_METADATA__';

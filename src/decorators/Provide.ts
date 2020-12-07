@@ -1,8 +1,4 @@
-import { STORAGE } from 'src/constants';
-import { ParamNotResolveable } from '../exceptions/ParamNotResolveable';
-import { Resolver } from '../framework/container/Resolver';
-import { RequestContext } from '../http';
-import { getStore } from '../utils/async-store';
+import { registry } from '../framework/services/ServiceRegistry';
 
 export function withParamProviding(fn, target, key) {
   return async function () {
@@ -11,10 +7,6 @@ export function withParamProviding(fn, target, key) {
       return fn.apply(this, arguments);
     }
 
-    const store = getStore();
-    const ctx = store.get(STORAGE.CONTEXT_KEY) as RequestContext;
-    const resolver = store.get(STORAGE.RESOLVER_KEY) as Resolver;
-
     const realArgs = [];
     for (let i = 0, n = types.length; i < n; i++) {
       const Type = types[i];
@@ -22,12 +14,7 @@ export function withParamProviding(fn, target, key) {
       const param =
         Type === Object || arguments[i] instanceof Type
           ? arguments[i]
-          : await resolver.resolve(target, types[i], ctx);
-      if (!param) {
-        throw new ParamNotResolveable(
-          `Param of ${types[i].name} could not be resolved. Be sure there is a registered resolver for this class`,
-        );
-      }
+          : await registry.resolve(target, types[i]);
       realArgs.push(param);
     }
     return fn.call(this, ...realArgs);

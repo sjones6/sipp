@@ -1,57 +1,8 @@
 import { Counter } from '../providers/ViewServiceProvider';
-import { h, Provide, RequestContext, Session, Url, View } from '@src/index';
+import { h, Provide, Csrf, Url, View } from '@src/index';
 import { User } from '../models/User';
 
-export function UsersList(users: User[], ctx: RequestContext) {
-  return (
-    <div>
-      {ctx.url.scriptTag('app')}
-      {ctx.url.styleTag('app')}
-      <form method="post" action="/users">
-        <div>
-          <label>
-            Email
-            <input type="text" name="email" />
-          </label>
-        </div>
-        <div>
-          <label>
-            Password
-            <input type="password" name="password" />
-          </label>
-        </div>
-        {ctx.csrfField()}
-        <button type="submit">Submit</button>
-      </form>
-      <ul>
-        {users.map((user) => {
-          return (
-            <li>
-              {user.email}
-              <a href={`/users/${user.id}`}>link</a>
-              <form
-                method="post"
-                action={ctx.url.alias(
-                  'delete-user',
-                  { user: user.id },
-                  undefined,
-                  'delete',
-                )}
-              >
-                {ctx.csrfField()}
-                <button>delete</button>
-              </form>
-            </li>
-          );
-        })}
-      </ul>
-      <a href={ctx.url.alias('foo')}>Download Foo</a>
-    </div>
-  );
-}
-
 export class UserView extends View {
-
   @Provide()
   async render(h, c: Counter) {
     return (
@@ -62,8 +13,64 @@ export class UserView extends View {
     );
   }
 
-  renderBody(h, ...rest: any[]): string {
-    return ''
+  async renderBody(h, ...rest: any[]): Promise<string> {
+    return '';
+  }
+}
+
+export class UsersList extends UserView {
+  constructor(private readonly users: User[]) {
+    super();
+  }
+
+  @Provide()
+  async renderBody(h, url: Url, csrf: Csrf): Promise<string> {
+    const { users } = this;
+    return (
+      <div>
+        {url.scriptTag('app')}
+        {url.styleTag('app')}
+        <form method="post" action="/users">
+          <div>
+            <label>
+              Email
+              <input type="text" name="email" />
+            </label>
+          </div>
+          <div>
+            <label>
+              Password
+              <input type="password" name="password" />
+            </label>
+          </div>
+          {csrf.csrfField()}
+          <button type="submit">Submit</button>
+        </form>
+        <ul>
+          {users.map((user) => {
+            return (
+              <li>
+                {user.email}
+                <a href={`/users/${user.id}`}>link</a>
+                <form
+                  method="post"
+                  action={url.alias(
+                    'delete-user',
+                    { user: user.id },
+                    undefined,
+                    'delete',
+                  )}
+                >
+                  {csrf.csrfField()}
+                  <button>delete</button>
+                </form>
+              </li>
+            );
+          })}
+        </ul>
+        <a href={url.alias('foo')}>Download Foo</a>
+      </div>
+    );
   }
 }
 
@@ -73,7 +80,7 @@ export class ShowUserView extends UserView {
   }
 
   @Provide()
-  renderBody(h, url: Url) {
+  async renderBody(h, url: Url): Promise<string> {
     const { user } = this;
     return (
       <div>

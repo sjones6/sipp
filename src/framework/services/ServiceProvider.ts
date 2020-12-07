@@ -1,4 +1,4 @@
-import { ServiceRegistry } from '../container/ServiceRegistry';
+import { IServiceRegistryFn } from 'src/interfaces';
 
 export class ServiceProvider {
   /**
@@ -8,5 +8,5 @@ export class ServiceProvider {
    */
   public init(): void | Promise<void> {}
 
-  public register(registry: ServiceRegistry): void {}
+  public register(register: IServiceRegistryFn): void {}
 }
