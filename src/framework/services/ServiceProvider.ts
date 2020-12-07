@@ -1,4 +1,4 @@
-import { IServiceRegistryFn } from 'src/interfaces';
+import { IServiceRegistryFn } from '../../interfaces';
 
 export class ServiceProvider {
   /**
