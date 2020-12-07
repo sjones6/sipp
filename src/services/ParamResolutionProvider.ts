@@ -20,17 +20,18 @@ import { Request } from 'express';
 
 export class ParamResolutionProvider extends ServiceProvider {
   public register(register: IServiceRegistryFn): void {
-    // controller only
+
+    // no view
     register([Controller, Middleware], Res, () => {
       const req = this.withRequest();
       return new Res(req, req.res);
     });
-    register([Controller, Middleware], Req, () => {
+
+    // controller, view, middleware
+    register([Controller, Middleware, View], Req, () => {
       const req = this.withRequest();
       return new Req(req);
     });
-
-    // controller and view
     register(
       [Controller, Middleware, View],
       Body,
