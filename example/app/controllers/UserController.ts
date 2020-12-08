@@ -8,19 +8,18 @@ import {
   Logger,
   NotFoundException,
   Post,
-  RequestSession,
-  RequestContext,
+  Session,
   Apply,
   transacting,
   ApplyAll,
 } from '@src/index';
-import { UsersList, ShowUser } from './Users';
+import { UsersList, ShowUserView } from './Users';
 
 @ApplyAll(transacting)
 export class UsersController extends Controller {
   @Get()
-  public async listUsers(ctx: RequestContext): Promise<string> {
-    return UsersList(await User.query(), ctx);
+  public async listUsers(): Promise<UsersList> {
+    return new UsersList(await User.query());
   }
 
   @Post('/', { name: 'user.create' })
@@ -28,20 +27,14 @@ export class UsersController extends Controller {
   public async createUser(user: User) {
     const validation = await user.validate();
     await user.save();
-    throw new Error('fooled ya!');
     return this.redirect(`/users/${user.id}`);
   }
 
   @Get('/:user', { name: 'get-user' })
-  public async getUser(
-    user: User,
-    logger: Logger,
-    session: RequestSession,
-    ctx: RequestContext,
-  ) {
+  public async getUser(user: User, logger: Logger, session: Session) {
     logger.debug(`getting user ${user.id}`);
     session.flash('welcome', `Hi, ${user.email}!`);
-    return ShowUser(user, ctx);
+    return new ShowUserView(user);
   }
 
   @Get('/:user/download', { name: 'download-user' })
@@ -60,8 +53,6 @@ export class UsersController extends Controller {
     switch (true) {
       case e instanceof NotFoundException:
         return { lost: true };
-      default:
-        return this.redirect(`/users`);
     }
   }
 }

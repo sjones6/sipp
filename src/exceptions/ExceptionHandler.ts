@@ -1,15 +1,15 @@
 import { BaseException } from './BaseException';
-import { RequestContext } from '../http';
 import { exceptionView } from './exception';
 import { Logger } from '../logger';
+import { Request, Response } from 'express';
 
 export class ExceptionHandler {
   constructor(private readonly logger: Logger) {}
-  handle(exception: BaseException, ctx: RequestContext): boolean {
+  handle(exception: BaseException, req: Request, res: Response): boolean {
     this.logger.error(`${exception.constructor.name}: ${exception.message}`);
-    if (!ctx.res.headersSent) {
-      ctx.res.status(exception.code);
-      ctx.res.send(exceptionView(exception));
+    if (!res.headersSent) {
+      res.status(exception.code);
+      res.send(exceptionView(exception));
     }
     return true;
   }

@@ -1,4 +1,5 @@
 import 'dotenv';
+import { Server } from 'http';
 import initModuleAlias from 'module-alias';
 import express, { Request, Response, NextFunction } from 'express';
 import session from 'express-session';
@@ -13,6 +14,7 @@ import {
   MIDDLEWARE_METADATA,
   CONTROLLER_MIDDLEWARE_METADATA,
   PATH_OPTION_METADATA,
+  STORAGE,
 } from './constants';
 import { Controller } from './Controller';
 import { Connection } from './db/Connection';
@@ -23,21 +25,28 @@ import {
 } from './exceptions';
 import {
   reqInfoLoggingMiddleware,
-  RequestContext,
   DownloadResponse,
   HTMLResponse,
   HTTPResponse,
   JSONResponse,
   NoContentResponse,
-  CONTEXT_KEY,
+  View,
+  Middleware,
 } from './http';
 import { Transaction } from 'objection';
-import { IAppConfig, IMiddlewareFunc, ISippNextFunc } from './interfaces';
+import { IAppConfig, IMiddlewareFunc } from './interfaces';
 import { RouteMapper } from './routing/RouteMapper';
 import logger, { Logger } from './logger';
 import { Download } from './http/response/download';
-import { getStore, initStore } from './utils/async-store';
-import { TRANSACTION_KEY } from './db';
+import { getStore } from './utils/async-store';
+import { ServiceProvider } from './framework/services/ServiceProvider';
+import {
+  ParamResolutionProvider,
+  ModelResolutionProvider,
+  RouteMappingProvider,
+  UrlProvider,
+} from './services';
+import { registry } from './framework/services/ServiceRegistry';
 
 // initializes the module-alias processing with the root same as the process working directory
 initModuleAlias(process.cwd());
@@ -53,13 +62,14 @@ const CTX_SYMBOL = Symbol('ctx');
 export class App {
   private app: express.Application;
   private controllers: Controller[] = [];
+  private providers: ServiceProvider[] = [];
   private globalMiddleware: IMiddlewareFunc[] = [];
   private middleware: IMiddlewareFunc[] = [];
   private exceptionHandler: ExceptionHandler;
-  private routeMapper: RouteMapper;
-  private connection: Connection;
-  private config: IAppConfig;
-  private logger: Logger;
+  private readonly routeMapper: RouteMapper;
+  private readonly connection: Connection;
+  private readonly config: IAppConfig;
+  private readonly logger: Logger;
 
   constructor(
     app: express.Application,
@@ -117,15 +127,37 @@ export class App {
       });
     }
 
+    this.withMiddleware(
+      // expose 2 bits of context to the request store:
+      // the resolver and the request context
+      (req: Request, res: Response) => {
+        const store = getStore();
+        store.set(STORAGE.REQ_KEY, req);
+      },
+    );
+
+    this.withProviders(
+      new ParamResolutionProvider(),
+      new ModelResolutionProvider(),
+      new RouteMappingProvider(this.routeMapper),
+      new UrlProvider(this.config.static, this.routeMapper),
+    );
+
     return this;
   }
 
   /**
    * Add a set of global middlewares
    */
-  public withMiddleware(...middleware: Array<IMiddlewareFunc>): App {
+  public withMiddleware(
+    ...middleware: Array<IMiddlewareFunc | Middleware>
+  ): App {
     this.logger.debug('adding middleware');
-    this.middleware.push(...middleware);
+    this.middleware.push(
+      ...middleware.map((middleware) =>
+        middleware instanceof Middleware ? middleware.bind() : middleware,
+      ),
+    );
     return this;
   }
 
@@ -135,9 +167,15 @@ export class App {
    * Global middleware do not report errors to controller
    * exception handlers
    */
-  public withGlobalMiddleware(...middleware: Array<IMiddlewareFunc>): App {
+  public withGlobalMiddleware(
+    ...middleware: Array<IMiddlewareFunc | Middleware>
+  ): App {
     this.logger.debug('adding global middleware');
-    this.globalMiddleware.push(...middleware);
+    this.globalMiddleware.push(
+      ...middleware.map((middleware) =>
+        middleware instanceof Middleware ? middleware.bind() : middleware,
+      ),
+    );
     return this;
   }
 
@@ -151,6 +189,15 @@ export class App {
   }
 
   /**
+   * Add a set of providers
+   */
+  public withProviders(...providers: ServiceProvider[]): App {
+    this.logger.debug('adding controllers');
+    this.providers.push(...providers);
+    return this;
+  }
+
+  /**
    * Override the default exception handler with one of your own
    */
   public withExceptionHandler(handler: ExceptionHandler): App {
@@ -159,10 +206,13 @@ export class App {
     return this;
   }
 
-  /**
-   * Turn the lights on
-   */
-  public listen() {
+  public async wire() {
+    // init service providers
+    await Promise.all(this.providers.map((provider) => provider.init()));
+
+    // register providers
+    registry.registerProviders(this.providers);
+
     // db
     this.connection.connect();
 
@@ -180,10 +230,15 @@ export class App {
     // error handler
     this.app.use(
       (err: Error, req: Request, res: Response, next: NextFunction) => {
-        this.onException(err, this.createRequestContext(req, res), next);
+        this.onException(err, req, res, next);
       },
     );
+  }
 
+  /**
+   * Turn the lights on
+   */
+  public listen(): Server {
     // attach the HTTP server to the specified port
     return this.app.listen(this.config.port, () => {
       this.logger.debug(
@@ -246,29 +301,48 @@ export class App {
               ...(methodMiddleware || []), // method handler middleware
               async (req: Request, res: Response) => {
                 req.logger.debug('start controller handling');
-                const ctx = this.createRequestContext(req, res);
-                const controllerReponse = await controller[method](ctx).then(
-                  async (controllerReponse) => {
+                const controllerReponse = await Promise.resolve(
+                  controller[method](req, res),
+                )
+                  .then(async (response) => {
+                    if (
+                      (response && response.prototype instanceof View) ||
+                      response instanceof View
+                    ) {
+                      return (response as View).renderToHtml();
+                    }
+                    return response;
+                  })
+                  .then(async (response) => {
                     const store = getStore();
-                    const trx = store.get(TRANSACTION_KEY) as Transaction;
+                    const trx = store.get(
+                      STORAGE.TRANSACTION_KEY,
+                    ) as Transaction;
                     if (trx && !trx.isCompleted()) {
                       req.logger.info('transaction commit');
                       await trx.commit();
                     }
-                    return controllerReponse;
-                  },
-                );
+                    return response;
+                  })
+                  .catch((err) => {
+                    req.logger.debug(
+                      `controller response threw an error, ${err.message}`,
+                    );
+                    throw err;
+                  });
                 req.logger.debug('end controller handling');
                 if (!res.headersSent) {
-                  this.handleControllerResponse(controllerReponse, ctx);
+                  this.handleControllerResponse(controllerReponse, req, res);
                 }
-                this.afterResponse(ctx);
+                this.afterResponse(req, res);
               },
             ),
             async (err: Error, req: Request, res: Response, next) => {
               try {
                 // handle transaction rollbash, if any
-                const trx = getStore().get(TRANSACTION_KEY) as Transaction;
+                const trx = getStore().get(
+                  STORAGE.TRANSACTION_KEY,
+                ) as Transaction;
                 if (trx && !trx.isCompleted()) {
                   req.logger.info('rolling back transaction');
                   await trx.rollback().catch((rollbackError) => {
@@ -278,9 +352,8 @@ export class App {
                   });
                 }
                 // do error handling
-                const ctx = this.createRequestContext(req, res);
-                this.onException(err, ctx, next, controller);
-                this.afterResponse(ctx);
+                this.onException(err, req, res, next, controller);
+                this.afterResponse(req, res);
               } catch (err) {
                 next(err);
               }
@@ -311,22 +384,13 @@ export class App {
   }
 
   /**
-   * Create a full-request context for a state-less request
-   */
-  private createRequestContext(req: Request, res: Response): RequestContext {
-    if (!req[CTX_SYMBOL]) {
-      req[CTX_SYMBOL] = new RequestContext(req, res, this.routeMapper);
-    }
-    return req[CTX_SYMBOL];
-  }
-
-  /**
    * Handle exceptions thrown throughout the lifecycle of the application,
    * including 404s, errors thrown in controllers, etc.
    */
   private onException(
     err: Error | BaseException,
-    ctx: RequestContext,
+    req: Request,
+    res: Response,
     next: NextFunction,
     controller?: Controller,
   ) {
@@ -336,13 +400,13 @@ export class App {
     if (controller) {
       try {
         const controllerReponse =
-          controller && controller.onException(exception, ctx);
+          controller && controller.onException(exception, req, res);
         if (controllerReponse !== false) {
-          this.handleControllerResponse(controllerReponse, ctx);
+          this.handleControllerResponse(controllerReponse, req, res);
           handled = true;
         }
       } catch (err) {
-        ctx.logger.error(
+        req.logger.error(
           `${controller.constructor.name} threw handling error, ${err.message}`,
         );
       }
@@ -353,7 +417,7 @@ export class App {
       try {
         this.exceptionHandler.reportHandledException(exception);
       } catch (err) {
-        const logger = ctx.logger || this.logger;
+        const logger = req.logger || this.logger;
         logger.error(
           `exception handler threw reporting handled exception, ${err.message}`,
         );
@@ -361,13 +425,13 @@ export class App {
     } else {
       // the application level exception handler should do it
       if (
-        !this.exceptionHandler.handle(exception, ctx) ||
-        !ctx.res.headersSent
+        !this.exceptionHandler.handle(exception, req, res) ||
+        !res.headersSent
       ) {
         try {
           this.exceptionHandler.reportUnhandledException(exception);
         } catch (err) {
-          const logger = ctx.logger || this.logger;
+          const logger = req.logger || this.logger;
           logger.error(
             `exception handler threw reporting unhandled exception, ${err.message}`,
           );
@@ -421,13 +485,14 @@ export class App {
 
   private handleControllerResponse(
     controllerReponse,
-    ctx: RequestContext,
+    req: Request,
+    res: Response,
   ): void {
     const reply: HTTPResponse<any> = this.resolveControllerResponse(
       controllerReponse,
     );
-    reply.handle(ctx);
-    ctx.req.logger.debug('response sent');
+    reply.handle(req, res);
+    req.logger.debug('response sent');
   }
 
   private resolveControllerResponse(controllerReponse: any): HTTPResponse<any> {
@@ -455,8 +520,7 @@ export class App {
     }
   }
 
-  private afterResponse(ctx: RequestContext) {
-    const { req, res } = ctx;
+  private afterResponse(req: Request, res: Response) {
     req.logger.addScope({
       status: res.statusCode,
     });

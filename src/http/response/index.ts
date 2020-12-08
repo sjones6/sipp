@@ -1,5 +1,5 @@
-import { RequestContext } from '../context/RequestContext';
 import mime from 'mime-types';
+import { Request, Response } from 'express';
 import { PathDownload, StreamDownload } from './download';
 
 export type ResponseBody = string | undefined | null | object | Array<any>;
@@ -11,43 +11,52 @@ export class HTTPResponse<ResponseType> {
     protected readonly controllerResponse: ResponseType,
     protected readonly status?: number,
   ) {}
-  public handle(ctx: RequestContext): void {
-    this.setStatus(ctx).setHeaders(ctx).setMimeType(ctx).setBody(ctx);
+  public handle(req: Request, res: Response): void {
+    this.setStatus(req, res)
+      .setHeaders(req, res)
+      .setMimeType(req, res)
+      .setBody(req, res);
   }
-  protected setBody(ctx: RequestContext): HTTPResponse<ResponseType> {
-    ctx.res.send(this.controllerResponse);
+  protected setBody(req: Request, res: Response): HTTPResponse<ResponseType> {
+    res.send(this.controllerResponse);
     return this;
   }
-  protected setStatus(ctx: RequestContext): HTTPResponse<ResponseType> {
+  protected setStatus(req: Request, res: Response): HTTPResponse<ResponseType> {
     if (this.status) {
-      ctx.res.status(this.status);
+      res.status(this.status);
     } else {
-      if (/post/i.test(ctx.method)) {
-        ctx.res.status(201);
+      if (/post/i.test(req.method)) {
+        res.status(201);
       } else {
-        ctx.res.status(200);
+        res.status(200);
       }
     }
     return this;
   }
-  protected setHeaders(ctx: RequestContext): HTTPResponse<ResponseType> {
+  protected setHeaders(
+    req: Request,
+    res: Response,
+  ): HTTPResponse<ResponseType> {
     if (this.headers) {
       Object.keys(this.headers).forEach((headerName) => {
-        ctx.res.setHeader(headerName, this.headers[headerName]);
+        res.setHeader(headerName, this.headers[headerName]);
       });
     }
     return this;
   }
-  protected setMimeType(ctx: RequestContext): HTTPResponse<ResponseType> {
-    this.mimeType && ctx.res.set('Content-Type', this.mimeType);
+  protected setMimeType(
+    req: Request,
+    res: Response,
+  ): HTTPResponse<ResponseType> {
+    this.mimeType && res.set('Content-Type', this.mimeType);
     return this;
   }
 }
 
 export class HTTPRedirect extends HTTPResponse<string> {
   protected readonly status: number = 302;
-  public handle(ctx: RequestContext) {
-    ctx.res.redirect(this.status, this.controllerResponse);
+  public handle(req: Request, res: Response) {
+    res.redirect(this.status, this.controllerResponse);
   }
 }
 
@@ -77,9 +86,10 @@ export class DownloadResponse extends HTTPResponse<
     };
   }
   protected setBody(
-    ctx: RequestContext,
+    req: Request,
+    res: Response,
   ): HTTPResponse<StreamDownload | PathDownload> {
-    this.controllerResponse.handle(ctx.res);
+    this.controllerResponse.handle(res);
     return this;
   }
 }

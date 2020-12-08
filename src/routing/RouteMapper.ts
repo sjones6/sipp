@@ -1,11 +1,9 @@
 import queryString, { StringifiableRecord } from 'query-string';
 
-export interface IQuery extends StringifiableRecord {
-  _method?: string;
-}
+export type METHOD = 'put' | 'patch' | 'delete';
 
-function isObject(maybeObject) {
-  return maybeObject && typeof maybeObject === 'object';
+export interface IQuery extends StringifiableRecord {
+  _method?: METHOD;
 }
 
 export class RouteMapper {
@@ -21,34 +19,52 @@ export class RouteMapper {
     this.aliasMap.set(alias, this.createPath(path.split('/')));
   }
 
-  public resolve(
-    name: string | Symbol,
-    params?: object,
-    query?: IQuery,
-    method?: string,
-  ): string {
-    if (!this.aliasMap.has(name)) {
-      throw new Error(`Not Found: ${name} not registered`);
-    }
+  public has(name: string | Symbol): boolean {
+    return this.aliasMap.has(name);
+  }
 
-    let route: string = this.aliasMap.get(name).reduce((path, part) => {
-      if (part.startsWith(':') && isObject(params)) {
+  public spliceParams(parts: string[], params: {}): string {
+    return parts.reduce((path, part) => {
+      if (part.startsWith(':')) {
         const paramValue = params[part.replace(':', '')];
         return path + '/' + (paramValue !== undefined ? paramValue : part);
       }
       return part ? path + '/' + part : path;
     }, '');
+  }
+
+  public appendQuery(path: string, query?: IQuery) {
+    if (!query) {
+      return path;
+    }
+    return `${path.replace(/\??$/, '?')}${queryString.stringify(query)}`;
+  }
+
+  public resolve(
+    name: string | Symbol,
+    params?: object,
+    query?: IQuery,
+    method?: METHOD,
+  ): string {
+    if (!this.has(name)) {
+      throw new Error(`Not Found: ${name} not registered`);
+    }
+    return this.construcUrl(this.aliasMap.get(name), params, query, method);
+  }
+
+  public construcUrl(
+    parts: string[],
+    params?: object,
+    query?: IQuery,
+    method?: METHOD,
+  ) {
+    let route: string = this.spliceParams(parts, params || {});
 
     if (method) {
       query = query || {};
       query._method = method;
     }
-    if (query) {
-      // todo: need to decide on array string method
-      route = route + '?' + queryString.stringify(query);
-    }
-
-    return route;
+    return this.appendQuery(route, query);
   }
 
   private createPath(path: string[]): string[] {

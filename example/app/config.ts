@@ -20,4 +20,5 @@ export const config: IAppConfig = {
   csrf: {
     cookie: true,
   },
+  static: 'public',
 };

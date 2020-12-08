@@ -9,7 +9,7 @@ function stringifyChildren(child: any): string {
       stringifiedChild = child.toString();
     }
     if (Array.isArray(child)) {
-      stringifiedChild = child.join('');
+      stringifiedChild = child.map(stringifyChildren).join('');
     } else if (child && typeof child.toString === 'function') {
       // there's a value that exposes a `toString` coercion method
       stringifiedChild = child.toString();
@@ -29,7 +29,7 @@ export const h = (tagName: Function | string, props?: object, ...children) => {
     return tagName({ ...props, children });
   }
 
-  let stringifiedChildren: string = children.map(stringifyChildren).join('\n');
+  let stringifiedChildren: string = children.map(stringifyChildren).join('');
   let stringifiedProps: string = '';
   if (props) {
     stringifiedProps = Object.entries(props)
@@ -42,7 +42,7 @@ export const h = (tagName: Function | string, props?: object, ...children) => {
         }
         return `${key}="${value}"`;
       })
-      .join(' ');
+      .join('');
   }
 
   return `<${tagName}${

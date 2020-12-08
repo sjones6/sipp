@@ -3,6 +3,7 @@ import { Request } from 'express';
 import { logger, Logger } from '../../logger';
 import { IMiddlewareFunc } from '../../interfaces';
 import { initStore } from '../../utils/async-store';
+import { STORAGE } from '../../constants';
 
 declare global {
   namespace Express {
@@ -17,7 +18,8 @@ declare global {
 export const reqInfoLoggingMiddleware: IMiddlewareFunc = (
   req: Request,
 ): void => {
-  initStore();
+  const store = initStore();
+  store.set(STORAGE.REQ_KEY, req);
   req.logger = logger;
   req.id = crypto.randomBytes(8).toString('hex');
   req.received = new Date();
