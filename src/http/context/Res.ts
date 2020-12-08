@@ -2,10 +2,10 @@ import { Request, Response } from 'express';
 
 /**
  * @class Res
- * 
+ *
  * Res is a lightweight wrapper around express.Response with a few
  * additional convenience wrappers.
- * 
+ *
  * Res can be injected via type-hint
  */
 export class Res {

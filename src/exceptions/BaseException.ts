@@ -11,6 +11,6 @@ export class BaseException extends Error {
   }
 
   public getDescription(): string {
-    return 'error';
+    return '';
   }
 }

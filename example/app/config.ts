@@ -2,6 +2,7 @@ import { join } from 'path';
 import { IAppConfig } from '@src/index';
 
 export const config: IAppConfig = {
+  mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
   port: 4000,
   db: {
     client: 'sqlite3',

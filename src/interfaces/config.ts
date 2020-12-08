@@ -23,6 +23,7 @@ interface ICsrfOptions {
 
 export interface IAppConfig {
   // required
+  mode: 'production' | 'development';
   csrf: ICsrfOptions | false;
   db: Knex.Config;
   migrations: IMigrationConfig;
