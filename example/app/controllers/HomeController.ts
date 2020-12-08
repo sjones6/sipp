@@ -24,4 +24,9 @@ export class HomeController extends Controller {
   public getFoo() {
     return this.download({ foo: 1 });
   }
+
+  @Get('/error', { name: 'error' })
+  public getError() {
+    throw new Error('you fool!');
+  }
 }

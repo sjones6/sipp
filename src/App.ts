@@ -57,8 +57,6 @@ const defaultConfig = {
   port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
 };
 
-const CTX_SYMBOL = Symbol('ctx');
-
 export class App {
   private app: express.Application;
   private controllers: Controller[] = [];
@@ -83,7 +81,7 @@ export class App {
       this.logger.setServiceLabel(config.serviceName);
     }
     this.config = Object.assign({}, defaultConfig, config);
-    this.exceptionHandler = new ExceptionHandler(this.logger);
+    this.exceptionHandler = new ExceptionHandler(this.logger, config.mode);
     this.routeMapper = new RouteMapper();
     this.connection = new Connection(this.config);
   }

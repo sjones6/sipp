@@ -13,7 +13,7 @@ export class Url {
 
   /**
    * Resolve a route alias into a qualified URL
-   * 
+   *
    * @param name alias name
    * @param params route params to splice into the route
    * @param query something that can be stringified into query params
@@ -25,16 +25,26 @@ export class Url {
 
   /**
    * Construct an arbitrary url
-   * 
+   *
    * @param relativeUrl a url (not including protocol)
    * @param params route params to splice into the route
    * @param query something that can be stringinfied as a query
    * @param method enum of a method to append (for the method-rewriting)
-   * 
+   *
    * @return the qualified url
    */
-  public url(relativeUrl: string, params?: object, query?: IQuery, method?: METHOD) {
-    return this.routeMapper.construcUrl(relativeUrl.split('/'), params, query, method);
+  public url(
+    relativeUrl: string,
+    params?: object,
+    query?: IQuery,
+    method?: METHOD,
+  ) {
+    return this.routeMapper.construcUrl(
+      relativeUrl.split('/'),
+      params,
+      query,
+      method,
+    );
   }
 
   /**
