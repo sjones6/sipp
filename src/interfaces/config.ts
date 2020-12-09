@@ -1,15 +1,7 @@
-import Knex from 'knex';
 import { SessionOptions } from 'express-session';
 import { Request } from 'express';
 import { CookieOptions } from 'csurf';
 import { Logger } from '../logger';
-
-interface IMigrationConfig {
-  directory: string;
-  tableName: string;
-  schemaName?: string;
-  disableTransactions?: boolean;
-}
 
 interface ICsrfOptions {
   value?: (req: Request) => string;
@@ -23,14 +15,13 @@ interface ICsrfOptions {
 
 export interface IAppConfig {
   // required
-  mode: 'production' | 'development';
+  mode: 'production' | 'development' | string;
   csrf: ICsrfOptions | false;
-  db: Knex.Config;
-  migrations: IMigrationConfig;
   session: SessionOptions | false;
 
   // optional
   basePath?: string;
+  knexPath?: string;
   logger?: Logger;
   port?: number;
   serviceName?: string;
