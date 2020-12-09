@@ -3,9 +3,6 @@
   "version": "1.0.0",
   "description": "",
   "main": "./app/",
-  "app": {
-    "config": "./app/config"
-  },
   "scripts": {
     "build": "tsc",
     "start": "nodemon"

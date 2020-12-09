@@ -83,7 +83,7 @@ export class App {
     this.config = Object.assign({}, defaultConfig, config);
     this.exceptionHandler = new ExceptionHandler(this.logger, config.mode);
     this.routeMapper = new RouteMapper();
-    this.connection = new Connection(this.config);
+    this.connection = new Connection(this.config.mode, this.config.knexPath);
   }
 
   static bootstrap(config?: IAppConfig, controllers?: Controller[]): App {
@@ -204,7 +204,7 @@ export class App {
     return this;
   }
 
-  public async wire() {
+  public async wire(): Promise<App> {
     // init service providers
     await Promise.all(this.providers.map((provider) => provider.init()));
 
@@ -231,6 +231,8 @@ export class App {
         this.onException(err, req, res, next);
       },
     );
+
+    return this;
   }
 
   /**

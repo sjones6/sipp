@@ -6,3 +6,4 @@ dist
 tmp
 
 .DS_Store
+.env

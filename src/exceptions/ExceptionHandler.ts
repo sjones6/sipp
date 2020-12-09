@@ -6,7 +6,7 @@ import { Request, Response } from 'express';
 export class ExceptionHandler {
   constructor(
     private readonly logger: Logger,
-    private readonly mode: 'production' | 'development',
+    private readonly mode: 'production' | 'development' | string,
   ) {}
   handle(exception: BaseException, req: Request, res: Response): boolean {
     this.logger.error(`${exception.constructor.name}: ${exception.message}`);
