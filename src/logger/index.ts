@@ -2,7 +2,7 @@ import winston, { format } from 'winston';
 import { join } from 'path';
 import { MESSAGE } from 'triple-beam';
 import { getStore, hasStore } from '../utils/async-store';
-const { combine, timestamp } = format;
+const { combine, timestamp, colorize, errors, printf } = format;
 
 const STORAGE_KEY = 'logger-storage-key';
 
@@ -14,13 +14,49 @@ const defaultOptions: LoggerOpt = {
   service: 'sipp',
 };
 
+export enum LOG_LEVELS {
+  EMERGENCY = 'emergency',
+  ALERT = 'alert',
+  CRITICAL = 'critical',
+  ERROR = 'error',
+  WARN = 'warning',
+  NOTICE = 'notice',
+  INFO = 'info',
+  DEBUG = 'debug',
+}
+
+export type LOGGER_MODE = 'development' | 'production' | string;
+
+function toString(val: any): string {
+  if (typeof val === 'string') {
+    return val;
+  }
+  if (val && typeof val.toString === 'function') {
+    return JSON.stringify(val);
+  }
+  return 'undefined';
+}
+
 export class Logger {
   private formatter: winston.Logform.Format;
   constructor(
+    private readonly mode: LOGGER_MODE,
     private readonly logger: winston.Logger,
     private readonly opt: LoggerOpt = defaultOptions,
   ) {
     this.logger.format = this.fmt();
+  }
+
+  static new(mode?: LOGGER_MODE): Logger {
+    const prodMode = mode === 'production';
+    return new Logger(
+      mode,
+      winston.createLogger({
+        level: prodMode ? LOG_LEVELS.ERROR : LOG_LEVELS.INFO,
+        levels: winston.config.syslog.levels,
+        transports: prodMode ? [consoleTransport, fileTransport] : [consoleTransport],
+      }),
+    );
   }
 
   /**
@@ -127,14 +163,17 @@ export class Logger {
 
   private fmt(): winston.Logform.Format {
     if (!this.formatter) {
-      const fmtStack = [
-        timestamp(),
-        this.addServiceLabel(),
-        this.createFormatter(),
-      ];
-      this.formatter = combine(...fmtStack);
+      this.formatter = this.mode === 'production' ? this.productionFormatter() : this.developmentFormatter();
     }
     return this.formatter;
+  }
+
+  private productionFormatter(): winston.Logform.Format {
+    return combine(
+      timestamp(),
+      this.addServiceLabel(),
+      this.createMachineParseableFormatter()
+    );
   }
 
   private addServiceLabel(): winston.Logform.Format {
@@ -148,17 +187,20 @@ export class Logger {
     };
   }
 
-  private createFormatter(): winston.Logform.Format {
-    function toString(val: any): string {
-      if (typeof val === 'string') {
-        return val;
-      }
-      if (val && typeof val.toString === 'function') {
-        return JSON.stringify(val);
-      }
-      return 'undefined';
-    }
+  private developmentFormatter(): winston.Logform.Format {
+    return combine(
+      timestamp(),
+      colorize(),
+      this.addServiceLabel(),
+      errors(),
+      printf((info) => {
+        const { level, svc, message, ...rest } = info; 
+        return `${level}${svc ? ` (${svc})` : ''}: ${message}`;
+      })
+    );
+  }
 
+  private createMachineParseableFormatter(): winston.Logform.Format {
     return {
       transform: (info) => {
         const message = Object.keys(info)
@@ -176,17 +218,6 @@ export class Logger {
   }
 }
 
-export enum LOG_LEVELS {
-  EMERGENCY = 'emergency',
-  ALERT = 'alert',
-  CRITICAL = 'critical',
-  ERROR = 'error',
-  WARN = 'warning',
-  NOTICE = 'notice',
-  INFO = 'info',
-  DEBUG = 'debug',
-}
-
 export const formats = format;
 
 export const consoleTransport = new winston.transports.Console({
@@ -199,16 +230,3 @@ export const fileTransport = new winston.transports.File({
     process.env.NODE_ENV === 'production' ? LOG_LEVELS.ERROR : LOG_LEVELS.DEBUG,
   filename: join(process.cwd(), 'tmp', 'combined.log'),
 });
-
-export const logger = new Logger(
-  winston.createLogger({
-    level:
-      process.env.NODE_ENV === 'production'
-        ? LOG_LEVELS.ERROR
-        : LOG_LEVELS.DEBUG,
-    levels: winston.config.syslog.levels,
-    transports: [consoleTransport, fileTransport],
-  }),
-);
-
-export default logger;

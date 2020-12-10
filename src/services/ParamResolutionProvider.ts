@@ -13,7 +13,6 @@ import {
   Csrf,
   Middleware,
 } from '../http';
-import { Logger } from '../logger';
 import { getStore } from '../utils/async-store';
 import { STORAGE } from 'src/constants';
 import { Request } from 'express';
@@ -55,11 +54,6 @@ export class ParamResolutionProvider extends ServiceProvider {
       [Controller, Middleware, View],
       Session,
       () => new Session(this.withRequest()),
-    );
-    register(
-      [Controller, Middleware, View],
-      Logger,
-      () => this.withRequest().logger,
     );
     register(
       [Controller, Middleware, View],
