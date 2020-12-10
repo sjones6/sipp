@@ -22,6 +22,7 @@ export interface IAppConfig {
   // optional
   basePath?: string;
   knexPath?: string;
+  logMode?: 'production' | 'development' | string;
   logger?: Logger;
   port?: number;
   serviceName?: string;

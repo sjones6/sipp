@@ -36,7 +36,7 @@ import {
 import { Transaction } from 'objection';
 import { IAppConfig, IMiddlewareFunc } from './interfaces';
 import { RouteMapper } from './routing/RouteMapper';
-import logger, { Logger } from './logger';
+import { Logger, LOGGER_MODE } from './logger';
 import { Download } from './http/response/download';
 import { getStore } from './utils/async-store';
 import { ServiceProvider } from './framework/services/ServiceProvider';
@@ -45,6 +45,7 @@ import {
   ModelResolutionProvider,
   RouteMappingProvider,
   UrlProvider,
+  LoggerProvider,
 } from './services';
 import { registry } from './framework/services/ServiceRegistry';
 
@@ -76,7 +77,7 @@ export class App {
   ) {
     this.app = app;
     this.controllers = controllers || [];
-    this.logger = config.logger || logger;
+    this.logger = config.logger || Logger.new(config.mode || 'production');
     if (config.serviceName) {
       this.logger.setServiceLabel(config.serviceName);
     }
@@ -95,7 +96,7 @@ export class App {
 
     // wire default handling of payloads, req id, logging, method override
     this.withGlobalMiddleware(
-      reqInfoLoggingMiddleware,
+      reqInfoLoggingMiddleware(this.logger),
       express.json(),
       express.urlencoded({ extended: true }),
       methodOverride('_method'),
@@ -139,6 +140,7 @@ export class App {
       new ModelResolutionProvider(),
       new RouteMappingProvider(this.routeMapper),
       new UrlProvider(this.config.static, this.routeMapper),
+      new LoggerProvider(this.logger)
     );
 
     return this;
