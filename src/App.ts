@@ -1,4 +1,4 @@
-import 'dotenv';
+import { config as envConfig } from 'dotenv';
 import { Server } from 'http';
 import initModuleAlias from 'module-alias';
 import express, { Request, Response, NextFunction } from 'express';
@@ -48,6 +48,8 @@ import {
   LoggerProvider,
 } from './services';
 import { registry } from './framework/services/ServiceRegistry';
+
+envConfig();
 
 // initializes the module-alias processing with the root same as the process working directory
 initModuleAlias(process.cwd());
