@@ -1,9 +1,22 @@
 {
-  "name": "@sjones6/sipp",
-  "version": "0.0.40",
-  "description": "",
+  "name": "sipp",
+  "version": "0.0.43",
+  "author": "Spencer Jones <spencer@sipp.dev> (https://spencerjones.blog)",
+  "license": "MIT",
+  "description": "An Opinionated, High-Productivity MVC Web Framework in TypeScript",
+  "keywords": [
+    "typescript",
+    "web-framework",
+    "mvc",
+    "dependency-injection",
+    "opinonated",
+    "productive"
+  ],
   "repository": "git://github.com/sjones6/sipp.git",
-  "main": "dist/index.js",
+  "homepage": "https://sipp.dev",
+  "bugs": {
+    "url": "https://github.com/sjones6/sipp/issues"
+  },
   "scripts": {
     "example": "cd example && npx nodemon",
     "dev": "tsc --watch",
@@ -12,18 +25,8 @@
     "prettier": "prettier --single-quote --trailing-comma all --write \"{example,src,test}/**/*.{js,ts,tsx}\"",
     "test": "mocha -r ts-node/register test/**/*.test.{ts,tsx}",
     "test:watch": "mocha -r ts-node/register test/**/*.test.{ts,tsx} --watch",
-    "prepublish": "npm test && npm run build"
+    "pub": "./publish.sh"
   },
-  "keywords": [
-    "typescript",
-    "web-framework",
-    "mvc"
-  ],
-  "files": [
-    "/dist"
-  ],
-  "author": "sjones6",
-  "license": "MIT",
   "dependencies": {
     "@types/connect-flash": "0.0.36",
     "@types/csurf": "^1.11.0",
