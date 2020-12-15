@@ -1,6 +1,6 @@
 {
   "name": "sipp",
-  "version": "0.0.40",
+  "version": "0.0.41",
   "author": "Spencer Jones <spencer@sipp.dev> (https://spencerjones.blog)",
   "license": "MIT",
   "description": "An Opinionated, High-Productivity MVC Web Framework in TypeScript",
@@ -15,7 +15,7 @@
   "repository": "git://github.com/sjones6/sipp.git",
   "homepage": "https://sipp.dev",
   "bugs": {
-    "url" : "https://github.com/sjones6/sipp/issues"
+    "url": "https://github.com/sjones6/sipp/issues"
   },
   "scripts": {
     "example": "cd example && npx nodemon",
