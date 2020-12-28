@@ -33,22 +33,22 @@ export class ParamResolutionProvider extends ServiceProvider {
     register(
       [Controller, Middleware, View],
       Body,
-      () => new Body(this.withRequest().body),
+      (resolve, Type) => new Type(this.withRequest().body),
     );
     register(
       [Controller, Middleware, View],
       Headers,
-      () => new Headers(this.withRequest().headers),
+      (resolve, Type) => new Type(this.withRequest().headers),
     );
     register(
       [Controller, Middleware, View],
       Params,
-      () => new Params(this.withRequest().params),
+      (resolve, Type) => new Type(this.withRequest().params),
     );
     register(
       [Controller, Middleware, View],
       Query,
-      () => new Query(this.withRequest().query),
+      (resolve, Type) => new Type(this.withRequest().query),
     );
     register(
       [Controller, Middleware, View],

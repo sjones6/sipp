@@ -1,18 +1,12 @@
 import { ServiceProvider } from '../framework';
 import { IServiceRegistryFn } from '../interfaces';
-import { Logger} from '../logger';
+import { Logger } from '../logger';
 
 export class LoggerProvider extends ServiceProvider {
-  constructor(
-    private readonly logger: Logger
-  ) {
+  constructor(private readonly logger: Logger) {
     super();
   }
   register(register: IServiceRegistryFn) {
-    register(
-      '*',
-      Logger,
-      () => this.logger,
-    );
+    register('*', Logger, () => this.logger);
   }
 }

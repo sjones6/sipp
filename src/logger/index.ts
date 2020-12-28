@@ -54,7 +54,9 @@ export class Logger {
       winston.createLogger({
         level: prodMode ? LOG_LEVELS.ERROR : LOG_LEVELS.INFO,
         levels: winston.config.syslog.levels,
-        transports: prodMode ? [consoleTransport, fileTransport] : [consoleTransport],
+        transports: prodMode
+          ? [consoleTransport, fileTransport]
+          : [consoleTransport],
       }),
     );
   }
@@ -163,7 +165,10 @@ export class Logger {
 
   private fmt(): winston.Logform.Format {
     if (!this.formatter) {
-      this.formatter = this.mode === 'production' ? this.productionFormatter() : this.developmentFormatter();
+      this.formatter =
+        this.mode === 'production'
+          ? this.productionFormatter()
+          : this.developmentFormatter();
     }
     return this.formatter;
   }
@@ -172,7 +177,7 @@ export class Logger {
     return combine(
       timestamp(),
       this.addServiceLabel(),
-      this.createMachineParseableFormatter()
+      this.createMachineParseableFormatter(),
     );
   }
 
@@ -194,9 +199,9 @@ export class Logger {
       this.addServiceLabel(),
       errors(),
       printf((info) => {
-        const { level, svc, message, ...rest } = info; 
+        const { level, svc, message, ...rest } = info;
         return `${level}${svc ? ` (${svc})` : ''}: ${message}`;
-      })
+      }),
     );
   }
 

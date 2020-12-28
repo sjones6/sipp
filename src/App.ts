@@ -36,7 +36,7 @@ import {
 import { Transaction } from 'objection';
 import { IAppConfig, IMiddlewareFunc } from './interfaces';
 import { RouteMapper } from './routing/RouteMapper';
-import { Logger, LOGGER_MODE } from './logger';
+import { Logger } from './logger';
 import { Download } from './http/response/download';
 import { getStore } from './utils/async-store';
 import { ServiceProvider } from './framework/services/ServiceProvider';
@@ -60,12 +60,18 @@ const defaultConfig = {
   port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
 };
 
+const normalizeMiddlewareOptions = (
+  opt: [string | RegExp, any] | false | object,
+): [string | RegExp, any] => {
+  return Array.isArray(opt) ? [opt[0], opt[1]] : ['', opt == null ? {} : opt || false];
+};
+
 export class App {
   private app: express.Application;
   private controllers: Controller[] = [];
   private providers: ServiceProvider[] = [];
-  private globalMiddleware: IMiddlewareFunc[] = [];
-  private middleware: IMiddlewareFunc[] = [];
+  private globalMiddleware: Array<[string | RegExp, IMiddlewareFunc]> = [];
+  private middleware: Array<[string | RegExp, IMiddlewareFunc]> = [];
   private exceptionHandler: ExceptionHandler;
   private readonly routeMapper: RouteMapper;
   private readonly connection: Connection;
@@ -97,29 +103,58 @@ export class App {
     this.logger.debug('App:init');
 
     // wire default handling of payloads, req id, logging, method override
-    this.withGlobalMiddleware(
-      reqInfoLoggingMiddleware(this.logger),
-      express.json(),
-      express.urlencoded({ extended: true }),
-      methodOverride('_method'),
+    this.withGlobalMiddleware(reqInfoLoggingMiddleware(this.logger));
+
+    const [jsonTest, jsonOpt] = normalizeMiddlewareOptions(
+      this.config.middleware?.json,
     );
+    if (jsonOpt) {
+      this.withGlobalMiddleware(jsonTest, express.json(jsonOpt));
+    }
+
+    const [bodyTest, bodyOpt] = normalizeMiddlewareOptions(
+      this.config.middleware?.body,
+    );
+    if (bodyOpt) {
+      this.withGlobalMiddleware(
+        bodyTest,
+        express.urlencoded({
+          extended: true,
+          ...bodyOpt,
+        }),
+      );
+    }
+
+    this.withGlobalMiddleware(methodOverride('_method'));
 
     // wire static file serving
-    if (this.config.static) {
-      this.withGlobalMiddleware(express.static(this.config.static));
+    const [staticTest, staticOpt] = normalizeMiddlewareOptions(
+      this.config.middleware?.static,
+    );
+    if (staticOpt) {
+      this.withGlobalMiddleware(staticTest, express.static(staticOpt.path));
     }
 
-    if (this.config.session !== false) {
-      this.withGlobalMiddleware(session(this.config.session), flash());
+    // wire session
+    const [sessionTest, sessionOpt] = normalizeMiddlewareOptions(
+      this.config.middleware?.session,
+    );
+    if (sessionOpt !== false) {
+      this.withGlobalMiddleware(sessionTest, session(sessionOpt), flash());
     }
 
-    if (this.config.csrf !== false) {
-      if (this.config.csrf.cookie) {
-        this.withGlobalMiddleware(cookieParser());
+    // wire csrf protection
+    const [test, csrfOpt] = normalizeMiddlewareOptions(
+      this.config.middleware?.csrf,
+    );
+    if (csrfOpt !== false) {
+      if (csrfOpt.cookie) {
+        const [secret, opt] = this.config.middleware?.cookieParser || [];
+        this.withGlobalMiddleware(cookieParser(secret, opt));
       }
 
       // todo: move csrf middleware
-      this.withMiddleware(csurf(this.config.csrf), (req, res, next) => {
+      this.withMiddleware(test, csurf(csrfOpt), (req, res, next) => {
         if (req.body && req.body._csrf) {
           req.headers['csrf-token'] = req.body._csrf;
           delete req.body._csrf;
@@ -141,8 +176,8 @@ export class App {
       new ParamResolutionProvider(),
       new ModelResolutionProvider(),
       new RouteMappingProvider(this.routeMapper),
-      new UrlProvider(this.config.static, this.routeMapper),
-      new LoggerProvider(this.logger)
+      new UrlProvider(staticOpt.path, this.routeMapper),
+      new LoggerProvider(this.logger),
     );
 
     return this;
@@ -150,16 +185,29 @@ export class App {
 
   /**
    * Add a set of global middlewares
+   *
+   * If the first parameter is a string or RegExp, it is used to
+   * limit/filter which routes receive that middleware.
    */
   public withMiddleware(
+    route: string | RegExp | IMiddlewareFunc | Middleware,
     ...middleware: Array<IMiddlewareFunc | Middleware>
   ): App {
     this.logger.debug('adding middleware');
-    this.middleware.push(
-      ...middleware.map((middleware) =>
-        middleware instanceof Middleware ? middleware.bind() : middleware,
-      ),
-    );
+    let realPath: string | RegExp = '';
+    if (typeof route !== 'string' && !(route instanceof RegExp)) {
+      this.middleware.push([
+        '',
+        route instanceof Middleware ? route.bind() : route,
+      ]);
+    } else {
+      realPath = route;
+    }
+    const middlewareTuples = middleware.map((m): [
+      string | RegExp,
+      IMiddlewareFunc,
+    ] => [realPath, m instanceof Middleware ? m.bind() : m]);
+    this.middleware.push(...middlewareTuples);
     return this;
   }
 
@@ -170,14 +218,24 @@ export class App {
    * exception handlers
    */
   public withGlobalMiddleware(
+    route: string | RegExp | IMiddlewareFunc | Middleware,
     ...middleware: Array<IMiddlewareFunc | Middleware>
   ): App {
     this.logger.debug('adding global middleware');
-    this.globalMiddleware.push(
-      ...middleware.map((middleware) =>
-        middleware instanceof Middleware ? middleware.bind() : middleware,
-      ),
-    );
+    let realPath: string | RegExp = '';
+    if (typeof route !== 'string' && !(route instanceof RegExp)) {
+      this.globalMiddleware.push([
+        '',
+        route instanceof Middleware ? route.bind() : route,
+      ]);
+    } else {
+      realPath = route;
+    }
+    const middlewareTuples = middleware.map((m): [
+      string | RegExp,
+      IMiddlewareFunc,
+    ] => [realPath, m instanceof Middleware ? m.bind() : m]);
+    this.globalMiddleware.push(...middlewareTuples);
     return this;
   }
 
@@ -219,7 +277,13 @@ export class App {
     this.connection.connect();
 
     // global middlewares
-    this.app.use(this.wrapMiddleware(...this.globalMiddleware));
+    this.globalMiddleware.forEach(([test, fn]): void => {
+      if (!test) {
+        this.app.use(...this.wrapMiddleware(fn));
+      } else {
+        this.app.use(test, ...this.wrapMiddleware(fn));
+      }
+    });
 
     // controllers
     this.registerControllers();
@@ -296,11 +360,26 @@ export class App {
             method,
           );
 
+          // filter out middlewares
+          const middlewaresToApply: IMiddlewareFunc[] = (this.middleware || [])
+            .map(
+              ([test, fn]): IMiddlewareFunc => {
+                if (!test) {
+                  return fn;
+                }
+                if (test instanceof RegExp) {
+                  return test.test(fullPath) && fn;
+                }
+                return fullPath.startsWith(test) && fn;
+              },
+            )
+            .filter((fn) => fn);
+
           // apply the method to the express application
           this.app[methodMetadata].apply(this.app, [
             fullPath,
             ...this.wrapMiddleware(
-              ...(this.middleware || []),
+              ...middlewaresToApply,
               ...(controllerMiddleware || []), // controller middleware
               ...(methodMiddleware || []), // method handler middleware
               async (req: Request, res: Response) => {
@@ -455,13 +534,13 @@ export class App {
             const expectsNext = fn.length === 3;
             const maybePromise = fn(req, res, (err) => {
               isResolved = true;
-              return err ? reject(err) : resolve();
+              return err ? reject(err) : resolve(void 0);
             });
             if (maybePromise && maybePromise instanceof Promise) {
               maybePromise
                 .then(() => {
                   if (!isResolved) {
-                    resolve();
+                    resolve(void 0);
                   }
                 })
                 .catch((err) => {
@@ -470,7 +549,7 @@ export class App {
                   }
                 });
             } else if (!expectsNext) {
-              resolve();
+              resolve(void 0);
             }
           })
             .then(() => {

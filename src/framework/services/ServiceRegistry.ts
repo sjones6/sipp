@@ -45,25 +45,30 @@ export class ServiceRegistry {
   }
 
   private filterProvidersForType(providers: RegisteredProvider[], Type) {
-    return providers
+    return (
+      providers
 
-      // get just the type resolves for this Type
-      .filter(([ResolverType]) => {
-        return compareClasses(Type, ResolverType);
-      })
+        // get just the type resolves for this Type
+        .filter(([ResolverType]) => {
+          return compareClasses(Type, ResolverType);
+        })
 
-      // sort the resolves by direct vs indirect match
-      .sort(([AResolverType], [BResolverType]) => {
-        const isADirectMatch = AResolverType === Type;
-        const isBDirectMatch = BResolverType === Type;
-        if (isADirectMatch && isBDirectMatch || !isADirectMatch && !isBDirectMatch) {
-          return 0;
-        }
-        return isADirectMatch ? -1 : 1;
-      })
+        // sort the resolves by direct vs indirect match
+        .sort(([AResolverType], [BResolverType]) => {
+          const isADirectMatch = AResolverType === Type;
+          const isBDirectMatch = BResolverType === Type;
+          if (
+            (isADirectMatch && isBDirectMatch) ||
+            (!isADirectMatch && !isBDirectMatch)
+          ) {
+            return 0;
+          }
+          return isADirectMatch ? -1 : 1;
+        })
 
-      // return an array of resolution functions
-      .map(([_, resolveFunction]) => resolveFunction);
+        // return an array of resolution functions
+        .map(([_, resolveFunction]) => resolveFunction)
+    );
   }
 
   public registerProviders(providers: ServiceProvider[]): void {
