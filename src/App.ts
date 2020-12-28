@@ -190,7 +190,7 @@ export class App {
    * limit/filter which routes receive that middleware.
    */
   public withMiddleware(
-    route: string | RegExp | IMiddlewareFunc | Middleware,
+    route?: string | RegExp | IMiddlewareFunc | Middleware,
     ...middleware: Array<IMiddlewareFunc | Middleware>
   ): App {
     this.logger.debug('adding middleware');
@@ -218,7 +218,7 @@ export class App {
    * exception handlers
    */
   public withGlobalMiddleware(
-    route: string | RegExp | IMiddlewareFunc | Middleware,
+    route?: string | RegExp | IMiddlewareFunc | Middleware,
     ...middleware: Array<IMiddlewareFunc | Middleware>
   ): App {
     this.logger.debug('adding global middleware');
