@@ -16,9 +16,7 @@ declare global {
 }
 
 export const reqInfoLoggingMiddleware = (logger: Logger): IMiddlewareFunc => {
-  return (
-    req: Request,
-  ): void => {
+  return (req: Request): void => {
     const store = initStore();
     store.set(STORAGE.REQ_KEY, req);
     req.logger = logger;
@@ -31,5 +29,5 @@ export const reqInfoLoggingMiddleware = (logger: Logger): IMiddlewareFunc => {
       method: req.method,
       received: req.received,
     });
-  }
+  };
 };

@@ -2,6 +2,7 @@ import { IServiceProviderFactoryFn } from 'src/interfaces';
 import { compareClasses } from '../../utils';
 import { ServiceProvider } from './ServiceProvider';
 import { ParamNotResolveable } from '../../exceptions/ParamNotResolveable';
+import { TooManyRequestsException } from 'src/exceptions';
 
 export type RegisteredProvider = [any, IServiceProviderFactoryFn];
 
@@ -26,6 +27,10 @@ export class ServiceRegistry {
         );
       }
       for (let i = 0, n = providers.length; i < n; i++) {
+        const typeFactory = typeFactories[i];
+        if (!typeFactory) {
+          continue;
+        }
         const resolution = await typeFactories[i](resolve, Type);
         if (resolution !== undefined) {
           return resolution;
@@ -40,11 +45,30 @@ export class ServiceRegistry {
   }
 
   private filterProvidersForType(providers: RegisteredProvider[], Type) {
-    return providers
-      .filter(([ResolverType]) => {
-        return compareClasses(Type, ResolverType);
-      })
-      .map(([_, resolveFunction]) => resolveFunction);
+    return (
+      providers
+
+        // get just the type resolves for this Type
+        .filter(([ResolverType]) => {
+          return compareClasses(Type, ResolverType);
+        })
+
+        // sort the resolves by direct vs indirect match
+        .sort(([AResolverType], [BResolverType]) => {
+          const isADirectMatch = AResolverType === Type;
+          const isBDirectMatch = BResolverType === Type;
+          if (
+            (isADirectMatch && isBDirectMatch) ||
+            (!isADirectMatch && !isBDirectMatch)
+          ) {
+            return 0;
+          }
+          return isADirectMatch ? -1 : 1;
+        })
+
+        // return an array of resolution functions
+        .map(([_, resolveFunction]) => resolveFunction)
+    );
   }
 
   public registerProviders(providers: ServiceProvider[]): void {

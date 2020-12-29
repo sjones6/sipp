@@ -8,9 +8,11 @@ export class Connection {
     const knexConfigPath = knexFilePath || join(process.cwd(), 'knexfile');
     const config = require(knexConfigPath);
     if (!config || !config[mode]) {
-      throw new Error(`knexfile does not export a config for application mode ${mode}`);
+      throw new Error(
+        `knexfile does not export a config for application mode ${mode}`,
+      );
     }
-    this.knex = Knex(config[mode]); 
+    this.knex = Knex(config[mode]);
   }
   public connect(): void {
     Model.knex(this.knex);
