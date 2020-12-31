@@ -19,44 +19,41 @@ import { Request } from 'express';
 
 export class ParamResolutionProvider extends ServiceProvider {
   public register(register: IServiceRegistryFn): void {
-    // no view
-    register([Controller, Middleware], Res, () => {
+    register('*', Res, () => {
       const req = this.withRequest();
       return new Res(req, req.res);
     });
-
-    // controller, view, middleware
-    register([Controller, Middleware, View], Req, () => {
+    register('*', Req, () => {
       const req = this.withRequest();
       return new Req(req);
     });
     register(
-      [Controller, Middleware, View],
+      '*',
       Body,
       (resolve, Type) => new Type(this.withRequest().body),
     );
     register(
-      [Controller, Middleware, View],
+      '*',
       Headers,
       (resolve, Type) => new Type(this.withRequest().headers),
     );
     register(
-      [Controller, Middleware, View],
+      '*',
       Params,
       (resolve, Type) => new Type(this.withRequest().params),
     );
     register(
-      [Controller, Middleware, View],
+      '*',
       Query,
       (resolve, Type) => new Type(this.withRequest().query),
     );
     register(
-      [Controller, Middleware, View],
+      '*',
       Session,
       () => new Session(this.withRequest()),
     );
     register(
-      [Controller, Middleware, View],
+      '*',
       Csrf,
       () => new Csrf(this.withRequest()),
     );
