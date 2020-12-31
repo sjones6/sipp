@@ -1,7 +1,7 @@
 import { config as envConfig } from 'dotenv';
 import { Server } from 'http';
 import initModuleAlias from 'module-alias';
-import express, { Request, Response, NextFunction } from 'express';
+import express, { Request, Response, NextFunction , Application} from 'express';
 import session from 'express-session';
 import flash from 'connect-flash';
 import csurf from 'csurf';
