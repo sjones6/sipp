@@ -2,6 +2,10 @@ import { Counter } from '../providers/ViewServiceProvider';
 import { h, Provide, Csrf, Url, View } from '@src/index';
 import { User } from '../models/User';
 
+export function Lost() {
+  return <h1>Sorry buddy, you're lost!</h1>
+}
+
 export class UserView extends View {
   @Provide()
   async render(h, c: Counter) {

@@ -3,7 +3,9 @@ import { devExceptionView, productionExceptionView } from './exception';
 import { Logger } from '../logger';
 import { Request, Response } from 'express';
 import { HTTPResponder } from '../http/response/Responder';
-import { HTMLResponse, HTTPResponse } from 'src/http';
+import { HTTPResponse, ResponseBody } from 'src/http';
+
+type ExceptionHandledResponse = ResponseBody | HTTPResponse<any> | false | Promise<ResponseBody | HTTPResponse<any> | false>;
 
 export class ExceptionHandler extends HTTPResponder {
   constructor(
@@ -16,7 +18,7 @@ export class ExceptionHandler extends HTTPResponder {
     exception: BaseException,
     req: Request,
     res: Response,
-  ): HTTPResponse<string> | boolean | Promise<HTTPResponse<any> | boolean> {
+  ): ExceptionHandledResponse {
     this.logger.error(`${exception.constructor.name}: ${exception.message}`);
     if (!res.headersSent) {
       return this.reply(
@@ -29,6 +31,14 @@ export class ExceptionHandler extends HTTPResponder {
     }
     return false;
   }
-  reportHandledException(exception: BaseException): void {}
-  reportUnhandledException(exception: BaseException): void {}
+
+  /**
+   * The exception was caught but handled by an exception handler
+   */
+  reportHandledException(exception: BaseException): void | Promise<void> {}
+
+  /**
+   * The exception was caught and unhandled by any exception handler
+   */
+  reportUnhandledException(exception: BaseException): void | Promise<void> {}
 }

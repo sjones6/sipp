@@ -5,6 +5,7 @@ import { RequestMethod, STORAGE } from '../constants';
 import { IServiceRegistryFn } from '../interfaces';
 import { getStore } from '../utils/async-store';
 import { Middleware } from '../http';
+import { NotFoundException, BadRequestException } from '../exceptions';
 
 export class ModelResolutionProvider extends ServiceProvider {
   register(register: IServiceRegistryFn) {
@@ -24,7 +25,13 @@ export class ModelResolutionProvider extends ServiceProvider {
             const name = Type.modelName();
             const id =
               (req.params[name] ? req.params[name] : null) || req.params['id'];
+            if (!id) {
+              throw new BadRequestException(`${Type.name} has no valid parameters; tried params.${name} and params.id`)
+            }
             model = await Type.load().findById(id);
+            if (!model) {
+              throw new NotFoundException(`${name} could not be located with id ${id}`);
+            }
           case RequestMethod.GET:
           case RequestMethod.DELETE:
             break;

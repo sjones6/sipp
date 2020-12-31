@@ -1,7 +1,7 @@
 import { config as envConfig } from 'dotenv';
 import { Server } from 'http';
 import initModuleAlias from 'module-alias';
-import express, { Request, Response, NextFunction , Application} from 'express';
+import express, { Request, Response, NextFunction, Application } from 'express';
 import session from 'express-session';
 import flash from 'connect-flash';
 import csurf from 'csurf';
@@ -65,7 +65,7 @@ const normalizeMiddlewareOptions = (
 };
 
 export class App {
-  private app: express.Application;
+  private app: Application;
   private controllers: Controller[] = [];
   private providers: ServiceProvider[] = [];
   private globalMiddleware: Array<[string | RegExp, IMiddlewareFunc]> = [];
@@ -77,7 +77,7 @@ export class App {
   private readonly logger: Logger;
 
   constructor(
-    app: express.Application,
+    app: Application,
     config: IAppConfig,
     controllers?: Controller[],
   ) {
@@ -314,6 +314,16 @@ export class App {
   }
 
   /**
+   * Get the express application instance that the Sipp application wraps.
+   * 
+   * This is useful for some testing frameworks, or for dangerously
+   * attaching your own middleware.
+   */
+  public express(): Application {
+    return this.app;
+  }
+
+  /**
    * Iterate through each of the registered controllers and register
    * the methods that the controllers expose with the express server
    */
@@ -472,18 +482,18 @@ export class App {
     controller?: Controller,
   ): Promise<void> {
     const exception = BaseException.toException(err);
-
+    const logger = req.logger || this.logger;
     let handled = false;
     if (controller) {
       try {
         const controllerReponse =
           controller && (await controller.onException(exception, req, res));
         if (controllerReponse !== false) {
-          this.handleResponse(toResponse(controllerReponse), req, res);
+          this.handleResponse(await toResponse(controllerReponse), req, res);
           handled = true;
         }
       } catch (err) {
-        req.logger.error(
+        logger.error(
           `${controller.constructor.name} threw handling error, ${err.message}`,
         );
       }
@@ -494,31 +504,39 @@ export class App {
       try {
         this.exceptionHandler.reportHandledException(exception);
       } catch (err) {
-        const logger = req.logger || this.logger;
         logger.error(
           `exception handler threw reporting handled exception, ${err.message}`,
         );
       }
     } else {
+
       // the application level exception handler should do it
-      const exceptionHandlerResponse = await this.exceptionHandler.handle(
+      handled = await Promise.resolve(this.exceptionHandler.handle(
         exception,
         req,
         res,
-      );
-      if (exceptionHandlerResponse !== false) {
-        this.handleResponse(toResponse(exceptionHandlerResponse), req, res);
-        handled = true;
-      }
-      if (!handled || !res.headersSent) {
-        try {
-          this.exceptionHandler.reportUnhandledException(exception);
-        } catch (err) {
-          const logger = req.logger || this.logger;
+      )).then((rawResponse) => {
+        if (rawResponse !== false) {
+          return toResponse(rawResponse).then(exceptionHandlerResponse => {
+            this.handleResponse(exceptionHandlerResponse, req, res);
+            return true;
+          });
+        }
+      });
+      if (!handled) {
+        Promise.resolve(this.exceptionHandler.reportUnhandledException(exception)).catch((reportError) => {
           logger.error(
             `exception handler threw reporting unhandled exception, ${err.message}`,
           );
-        }
+        });
+      } else {
+        Promise.resolve(this.exceptionHandler.reportHandledException(exception)).catch((reportError) => {
+          logger.error(
+            `exception handler threw reporting handled exception, ${err.message}`,
+          );
+        });
+      }
+      if (!res.headersSent) {
         next(exception);
       }
     }

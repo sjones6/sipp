@@ -1,3 +1,5 @@
+import { View } from '../http';
+import { isInstanceOf } from '../utils';
 import {
   PATH_METADATA,
   METHOD_METADATA,
