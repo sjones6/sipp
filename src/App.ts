@@ -16,7 +16,6 @@ import {
   PATH_OPTION_METADATA,
   STORAGE,
 } from './constants';
-import { Controller } from './Controller';
 import { Connection } from './db/Connection';
 import {
   BaseException,
@@ -25,19 +24,15 @@ import {
 } from './exceptions';
 import {
   reqInfoLoggingMiddleware,
-  DownloadResponse,
-  HTMLResponse,
-  HTTPResponse,
-  JSONResponse,
-  NoContentResponse,
-  View,
   Middleware,
+  toResponse,
+  HTTPResponse,
+  Controller,
 } from './http';
 import { Transaction } from 'objection';
 import { IAppConfig, IMiddlewareFunc } from './interfaces';
 import { RouteMapper } from './routing/RouteMapper';
 import { Logger } from './logger';
-import { Download } from './http/response/download';
 import { getStore } from './utils/async-store';
 import { ServiceProvider } from './framework/services/ServiceProvider';
 import {
@@ -48,6 +43,7 @@ import {
   LoggerProvider,
 } from './services';
 import { registry } from './framework/services/ServiceRegistry';
+import { isInstanceOf } from './utils';
 
 envConfig();
 
@@ -63,7 +59,9 @@ const defaultConfig = {
 const normalizeMiddlewareOptions = (
   opt: [string | RegExp, any] | false | object,
 ): [string | RegExp, any] => {
-  return Array.isArray(opt) ? [opt[0], opt[1]] : ['', opt == null ? {} : opt || false];
+  return Array.isArray(opt)
+    ? [opt[0], opt[1]]
+    : ['', opt == null ? {} : opt || false];
 };
 
 export class App {
@@ -346,7 +344,11 @@ export class App {
 
           // register the route with the mapper
           if (pathOptionMetadata && pathOptionMetadata.name) {
-            this.routeMapper.register(pathOptionMetadata.name, fullPath);
+            this.routeMapper.register(
+              pathOptionMetadata.name,
+              fullPath,
+              methodMetadata,
+            );
           }
 
           // gather up the middleware to apply in order
@@ -387,16 +389,8 @@ export class App {
                 const controllerReponse = await Promise.resolve(
                   controller[method](req, res),
                 )
-                  .then(async (response) => {
-                    if (
-                      (response && response.prototype instanceof View) ||
-                      response instanceof View
-                    ) {
-                      return (response as View).renderToHtml();
-                    }
-                    return response;
-                  })
-                  .then(async (response) => {
+                  .then(toResponse)
+                  .then(async (response: HTTPResponse<any>) => {
                     const store = getStore();
                     const trx = store.get(
                       STORAGE.TRANSACTION_KEY,
@@ -415,11 +409,12 @@ export class App {
                   });
                 req.logger.debug('end controller handling');
                 if (!res.headersSent) {
-                  this.handleControllerResponse(controllerReponse, req, res);
+                  this.handleResponse(controllerReponse, req, res);
                 }
-                this.afterResponse(req, res);
               },
             ),
+
+            // append one middleware fn to handler errors after controller pipeline
             async (err: Error, req: Request, res: Response, next) => {
               try {
                 // handle transaction rollbash, if any
@@ -435,8 +430,7 @@ export class App {
                   });
                 }
                 // do error handling
-                this.onException(err, req, res, next, controller);
-                this.afterResponse(req, res);
+                await this.onException(err, req, res, next, controller);
               } catch (err) {
                 next(err);
               }
@@ -470,22 +464,22 @@ export class App {
    * Handle exceptions thrown throughout the lifecycle of the application,
    * including 404s, errors thrown in controllers, etc.
    */
-  private onException(
+  private async onException(
     err: Error | BaseException,
     req: Request,
     res: Response,
     next: NextFunction,
     controller?: Controller,
-  ) {
+  ): Promise<void> {
     const exception = BaseException.toException(err);
 
     let handled = false;
     if (controller) {
       try {
         const controllerReponse =
-          controller && controller.onException(exception, req, res);
+          controller && (await controller.onException(exception, req, res));
         if (controllerReponse !== false) {
-          this.handleControllerResponse(controllerReponse, req, res);
+          this.handleResponse(toResponse(controllerReponse), req, res);
           handled = true;
         }
       } catch (err) {
@@ -507,10 +501,16 @@ export class App {
       }
     } else {
       // the application level exception handler should do it
-      if (
-        !this.exceptionHandler.handle(exception, req, res) ||
-        !res.headersSent
-      ) {
+      const exceptionHandlerResponse = await this.exceptionHandler.handle(
+        exception,
+        req,
+        res,
+      );
+      if (exceptionHandlerResponse !== false) {
+        this.handleResponse(toResponse(exceptionHandlerResponse), req, res);
+        handled = true;
+      }
+      if (!handled || !res.headersSent) {
         try {
           this.exceptionHandler.reportUnhandledException(exception);
         } catch (err) {
@@ -532,15 +532,15 @@ export class App {
           let isResolved = false;
           new Promise((resolve, reject) => {
             const expectsNext = fn.length === 3;
-            const maybePromise = fn(req, res, (err) => {
+            const maybePromise = fn(req, res, (err, response) => {
               isResolved = true;
-              return err ? reject(err) : resolve(void 0);
+              return err ? reject(err) : resolve(response);
             });
             if (maybePromise && maybePromise instanceof Promise) {
               maybePromise
-                .then(() => {
+                .then((resolvedValue) => {
                   if (!isResolved) {
-                    resolve(void 0);
+                    resolve(resolvedValue);
                   }
                 })
                 .catch((err) => {
@@ -552,7 +552,14 @@ export class App {
               resolve(void 0);
             }
           })
-            .then(() => {
+            .then((resolvedValue) => {
+              if (isInstanceOf(HTTPResponse, resolvedValue)) {
+                this.handleResponse(
+                  resolvedValue as HTTPResponse<any>,
+                  req,
+                  res,
+                );
+              }
               if (!res.headersSent) {
                 next();
               }
@@ -566,41 +573,14 @@ export class App {
       });
   }
 
-  private handleControllerResponse(
-    controllerReponse,
+  private handleResponse(
+    response: HTTPResponse<any>,
     req: Request,
     res: Response,
   ): void {
-    const reply: HTTPResponse<any> = this.resolveControllerResponse(
-      controllerReponse,
-    );
-    reply.handle(req, res);
+    response.handle(req, res);
     req.logger.debug('response sent');
-  }
-
-  private resolveControllerResponse(controllerReponse: any): HTTPResponse<any> {
-    // theoretically possible to return a HTTPResponse object from the controller. No need to coerce
-    if (controllerReponse instanceof HTTPResponse) {
-      return controllerReponse;
-    }
-
-    switch (true) {
-      case controllerReponse == null: // null or undefined
-        return new NoContentResponse();
-      case controllerReponse instanceof Download:
-        return new DownloadResponse(controllerReponse);
-      case typeof controllerReponse === 'string': // either html or plain text
-      case controllerReponse instanceof String:
-        return controllerReponse.startsWith('<') &&
-          controllerReponse.endsWith('>')
-          ? new HTMLResponse(controllerReponse)
-          : new HTTPResponse(controllerReponse);
-      case typeof controllerReponse == 'object': // json
-      case Array.isArray(controllerReponse):
-        return new JSONResponse(controllerReponse);
-      default:
-        return new HTTPResponse(controllerReponse);
-    }
+    this.afterResponse(req, res);
   }
 
   private afterResponse(req: Request, res: Response) {

@@ -11,6 +11,7 @@ export class HomeController extends Controller {
       method: req.method,
       home: url.alias('home'),
       user: url.alias('get-user', { user: 1 }),
+      delUser: url.alias('delete-user', { user: 1 }),
       arbitrary: url.url('/some/path/:id', { id: 2 }, { foo: 2 }, 'patch'),
       flash: session.getFlash('info'),
       query: query,

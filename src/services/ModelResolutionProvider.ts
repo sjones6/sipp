@@ -1,4 +1,4 @@
-import { Controller } from '../Controller';
+import { Controller } from '../http';
 import { ServiceProvider } from '../framework';
 import { Model } from '../db';
 import { RequestMethod, STORAGE } from '../constants';

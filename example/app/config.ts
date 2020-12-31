@@ -5,7 +5,7 @@ export const config: IAppConfig = {
   port: 4000,
   middleware: {
     static: {
-      path: 'public'
+      path: 'public',
     },
     session: {
       secret: process.env.SESSION_SECRET || 'keyboard cat',
