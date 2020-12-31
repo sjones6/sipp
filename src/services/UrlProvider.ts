@@ -2,7 +2,7 @@ import { ServiceProvider } from '../framework';
 import { IServiceRegistryFn } from '../interfaces';
 import { Middleware, Url, View } from '../http';
 import { RouteMapper } from '../routing/RouteMapper';
-import { Controller } from '../Controller';
+import { Controller } from '../http';
 
 export class UrlProvider extends ServiceProvider {
   constructor(

@@ -1,14 +1,21 @@
 import mime from 'mime-types';
 import { Request, Response } from 'express';
-import { PathDownload, StreamDownload } from './download';
+import { PathDownload, StreamDownload, Download } from './download';
+import { View } from '../view';
+import { isInstanceOf } from '../../utils';
 
 export type ResponseBody = string | undefined | null | object | Array<any>;
 
+export type ResponseHeaders = {
+  [key: string]: string;
+};
+
 export class HTTPResponse<ResponseType> {
   protected mimeType: string | undefined = mime.lookup('txt');
-  protected headers: object | undefined;
+  protected defaultHeaders: object | undefined;
   constructor(
     protected readonly controllerResponse: ResponseType,
+    protected readonly headers?: ResponseHeaders,
     protected readonly status?: number,
   ) {}
   public handle(req: Request, res: Response): void {
@@ -37,6 +44,11 @@ export class HTTPResponse<ResponseType> {
     req: Request,
     res: Response,
   ): HTTPResponse<ResponseType> {
+    if (this.defaultHeaders) {
+      Object.keys(this.defaultHeaders).forEach((headerName) => {
+        res.setHeader(headerName, this.defaultHeaders[headerName]);
+      });
+    }
     if (this.headers) {
       Object.keys(this.headers).forEach((headerName) => {
         res.setHeader(headerName, this.headers[headerName]);
@@ -70,18 +82,22 @@ export class HTMLResponse extends HTTPResponse<string> {
 
 export class NoContentResponse extends HTTPResponse<undefined> {
   protected readonly mimeType: undefined;
-  constructor() {
-    super(undefined, 204);
+  constructor(content = undefined, headers = undefined) {
+    super(content, headers, 204);
   }
 }
 
 export class DownloadResponse extends HTTPResponse<
   StreamDownload | PathDownload
 > {
-  constructor(download: StreamDownload | PathDownload) {
-    super(download, 200);
+  constructor(
+    download: StreamDownload | PathDownload,
+    headers?: ResponseHeaders,
+    status?: number,
+  ) {
+    super(download, headers, status || 200);
     this.mimeType = mime.contentType(download.mimeType) as string;
-    this.headers = {
+    this.defaultHeaders = {
       'Content-Disposition': `attachment; filename="${download.getFileName()}"`,
     };
   }
@@ -91,5 +107,36 @@ export class DownloadResponse extends HTTPResponse<
   ): HTTPResponse<StreamDownload | PathDownload> {
     this.controllerResponse.handle(res);
     return this;
+  }
+}
+
+export function toResponse(
+  response: any,
+  headers?: ResponseHeaders,
+  status?: number,
+): HTTPResponse<any> {
+  // theoretically possible to return a HTTPResponse object from the controller. No need to coerce
+  if (isInstanceOf(HTTPResponse, response)) {
+    return response;
+  }
+
+  switch (true) {
+    case response == null: // null or undefined
+      return new NoContentResponse(undefined, headers);
+    case response instanceof Download:
+      return new DownloadResponse(response, headers, status);
+    case response instanceof View:
+    case response.prototype instanceof View:
+      return new HTTPResponse(response.renderToHtml(), headers, status);
+    case typeof response === 'string': // either html or plain text
+    case response instanceof String:
+      return response.startsWith('<') && response.endsWith('>')
+        ? new HTMLResponse(response, headers, status)
+        : new HTTPResponse(response, headers, status);
+    case typeof response == 'object': // json
+    case Array.isArray(response):
+      return new JSONResponse(response, headers, status);
+    default:
+      return new HTTPResponse(response, headers, status);
   }
 }

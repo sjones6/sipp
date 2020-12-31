@@ -25,30 +25,58 @@ export class Req {
 }
 
 export class Body extends Validator {
-  constructor(obj: object) {
+  constructor(private __body: object) {
     super();
-    Object.assign(this, obj);
-    this[ORIGINAL_BODY] = JSON.parse(JSON.stringify(obj));
+    Object.assign(this, __body);
+    this[ORIGINAL_BODY] = JSON.parse(JSON.stringify(__body));
   }
   getOriginal() {
     return this[ORIGINAL_BODY];
   }
+  get<T>(key: string, defaultValue?: T): T {
+    return this.hasOwnProperty(key) ? this[key] : defaultValue;
+  }
+  set<T>(key: string, value: T): void {
+    this.__body[key] = value;
+    this[key] = value;
+  }
 }
 export class Headers extends Validator {
-  constructor(obj: object) {
+  constructor(private __headers: object) {
     super();
-    Object.assign(this, obj);
+    Object.assign(this, __headers);
+  }
+  get<T>(key: string, defaultValue?: T): T {
+    return this.hasOwnProperty(key) ? this[key] : defaultValue;
+  }
+  set<T>(key: string, value: T): void {
+    this.__headers[key] = value;
+    this[key] = value;
   }
 }
 export class Params extends Validator {
-  constructor(obj: object) {
+  constructor(private __params: object) {
     super();
-    Object.assign(this, obj);
+    Object.assign(this, __params);
+  }
+  get<T>(key: string, defaultValue?: T): T {
+    return this.hasOwnProperty(key) ? this[key] : defaultValue;
+  }
+  set<T>(key: string, value: T): void {
+    this.__params[key] = value;
+    this[key] = value;
   }
 }
 export class Query extends Validator {
-  constructor(obj: object) {
+  constructor(private __query: object) {
     super();
-    Object.assign(this, obj);
+    Object.assign(this, __query);
+  }
+  get<T>(key: string, defaultValue?: T): T {
+    return this.hasOwnProperty(key) ? this[key] : defaultValue;
+  }
+  set<T>(key: string, value: T): void {
+    this.__query[key] = value;
+    this[key] = value;
   }
 }

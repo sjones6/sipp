@@ -1,5 +1,5 @@
 import { IServiceRegistryFn } from '../interfaces';
-import { Controller } from '../Controller';
+import { Controller } from '../http';
 import { ServiceProvider } from '../framework';
 import {
   Body,

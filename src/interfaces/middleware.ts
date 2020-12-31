@@ -1,7 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 
 export interface ISippNextFunc {
-  (error?: Error): void | undefined | Promise<any>;
+  (error?: Error, response?: any): void | undefined | Promise<any>;
 }
 
 export interface IMiddlewareFunc {

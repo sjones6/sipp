@@ -7,16 +7,23 @@ export interface IQuery extends StringifiableRecord {
 }
 
 export class RouteMapper {
-  private readonly aliasMap: Map<string | Symbol, string[]>;
+  private readonly aliasMap: Map<
+    string | Symbol,
+    [string[], METHOD | undefined]
+  >;
   constructor() {
     this.aliasMap = new Map();
   }
 
-  public register(alias: string | Symbol, path: string) {
+  public register(alias: string | Symbol, path: string, method?: METHOD) {
     if (this.aliasMap.has(alias)) {
       throw new Error(`Conflict ${alias} already registered`);
     }
-    this.aliasMap.set(alias, this.createPath(path.split('/')));
+    const isOverrideableMethod = ['put', 'patch', 'delete'].includes(method);
+    this.aliasMap.set(alias, [
+      this.createPath(path.split('/')),
+      isOverrideableMethod ? method : undefined,
+    ]);
   }
 
   public has(name: string | Symbol): boolean {
@@ -49,7 +56,8 @@ export class RouteMapper {
     if (!this.has(name)) {
       throw new Error(`Not Found: ${name} not registered`);
     }
-    return this.construcUrl(this.aliasMap.get(name), params, query, method);
+    const [path, routeMethod] = this.aliasMap.get(name);
+    return this.construcUrl(path, params, query, method || routeMethod);
   }
 
   public construcUrl(
