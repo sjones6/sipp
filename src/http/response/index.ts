@@ -127,7 +127,7 @@ export function toResponse(
       return new DownloadResponse(response, headers, status);
     case response instanceof View:
     case response.prototype instanceof View:
-      return new HTTPResponse(response.renderToHtml(), headers, status);
+      return new HTMLResponse(response.renderToHtml(), headers, status);
     case typeof response === 'string': // either html or plain text
     case response instanceof String:
       return response.startsWith('<') && response.endsWith('>')
