@@ -181,6 +181,14 @@ export class App {
     return this;
   }
 
+  public getLogger(): Logger {
+    return this.logger;
+  }
+
+  public getExceptionHandler(): ExceptionHandler {
+    return this.exceptionHandler;
+  }
+
   /**
    * Add a set of global middlewares
    *
