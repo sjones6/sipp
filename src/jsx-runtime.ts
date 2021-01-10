@@ -5,7 +5,7 @@ interface PropsWithChildren {
 }
 
 export const jsx = (tagName, props: PropsWithChildren) => {
-  const { children, ...otherProps } = props || {};
+  const { children, ...otherProps } = props || { children: null };
   return h(
     tagName,
     otherProps,
