@@ -1,19 +1,27 @@
 import { Counter } from '../providers/ViewServiceProvider';
-import { h, Provide, Csrf, Url, View } from '@src/index';
+import { Provide, Csrf, Url, View } from '@src/index';
 import { User } from '../models/User';
+
+export function Lost() {
+  return <h1>Sorry buddy, you're lost!</h1>;
+}
 
 export class UserView extends View {
   @Provide()
-  async render(h, c: Counter) {
+  async render(c: Counter) {
     return (
       <div>
+        <>
+          <h1>one in frag</h1>
+          <h1>two in frag</h1>
+        </>
         <h1>{c.count}</h1>
-        {await this.renderBody(h)}
+        {await this.renderBody()}
       </div>
     );
   }
 
-  async renderBody(h, ...rest: any[]): Promise<string> {
+  async renderBody(...rest: any[]): Promise<string> {
     return '';
   }
 }
@@ -24,12 +32,13 @@ export class UsersList extends UserView {
   }
 
   @Provide()
-  async renderBody(h, url: Url, csrf: Csrf): Promise<string> {
+  async renderBody(url: Url, csrf: Csrf): Promise<string> {
     const { users } = this;
     return (
       <div>
         {url.scriptTag('app')}
         {url.styleTag('app')}
+
         <form method="post" action="/users">
           <div>
             <label>
@@ -80,7 +89,7 @@ export class ShowUserView extends UserView {
   }
 
   @Provide()
-  async renderBody(h, url: Url): Promise<string> {
+  async renderBody(url: Url): Promise<string> {
     const { user } = this;
     return (
       <div>

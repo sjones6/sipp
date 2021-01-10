@@ -20,7 +20,7 @@ export class HTTPResponder {
     response: ResponseBody,
     headers?: ResponseHeaders,
     status?: number,
-  ): HTTPResponse<any> {
+  ): Promise<HTTPResponse<any>> {
     return toResponse(response, headers, status);
   }
 

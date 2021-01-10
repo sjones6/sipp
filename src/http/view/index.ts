@@ -1,10 +1,8 @@
-import { h } from '../../jsx';
-
 export class View {
   public renderToHtml(): Promise<string> | string {
-    return this.render(h);
+    return this.render();
   }
-  protected render(h, ...args: any[]): Promise<string> | string {
+  protected render(...args: any[]): Promise<string> | string {
     throw new Error('child views must implement this method');
   }
 }

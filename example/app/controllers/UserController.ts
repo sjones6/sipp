@@ -13,7 +13,7 @@ import {
   transacting,
   ApplyAll,
 } from '@src/index';
-import { UsersList, ShowUserView } from './Users';
+import { UsersList, ShowUserView, Lost } from './Users';
 
 @ApplyAll(transacting)
 export class UsersController extends Controller {
@@ -52,7 +52,7 @@ export class UsersController extends Controller {
   onException(e: BaseException): false | ResponseBody {
     switch (true) {
       case e instanceof NotFoundException:
-        return { lost: true };
+        return Lost();
     }
   }
 }

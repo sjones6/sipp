@@ -4,7 +4,13 @@ import { PathDownload, StreamDownload, Download } from './download';
 import { View } from '../view';
 import { isInstanceOf } from '../../utils';
 
-export type ResponseBody = string | undefined | null | object | Array<any>;
+export type ResponseBody =
+  | string
+  | undefined
+  | null
+  | object
+  | Array<any>
+  | View;
 
 export type ResponseHeaders = {
   [key: string]: string;
@@ -110,11 +116,11 @@ export class DownloadResponse extends HTTPResponse<
   }
 }
 
-export function toResponse(
+export async function toResponse(
   response: any,
   headers?: ResponseHeaders,
   status?: number,
-): HTTPResponse<any> {
+): Promise<HTTPResponse<any>> {
   // theoretically possible to return a HTTPResponse object from the controller. No need to coerce
   if (isInstanceOf(HTTPResponse, response)) {
     return response;
@@ -127,7 +133,7 @@ export function toResponse(
       return new DownloadResponse(response, headers, status);
     case response instanceof View:
     case response.prototype instanceof View:
-      return new HTTPResponse(response.renderToHtml(), headers, status);
+      return new HTMLResponse(await response.renderToHtml(), headers, status);
     case typeof response === 'string': // either html or plain text
     case response instanceof String:
       return response.startsWith('<') && response.endsWith('>')

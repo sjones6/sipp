@@ -1,6 +1,6 @@
 import { Model as M, Transaction, QueryBuilder } from 'objection';
 import { STORAGE } from 'src/constants';
-import { getStore } from '../utils/async-store';
+import { getStore, hasStore } from '../utils/async-store';
 import {
   IValidator,
   validate,
@@ -28,27 +28,27 @@ export class Model extends M implements IValidator {
     }
     return query;
   }
+  static resolveTransaction(trx?: Transaction): Transaction | undefined {
+    if (trx) {
+      return trx;
+    }
+    return hasStore() ? getStore().get(STORAGE.TRANSACTION_KEY) : undefined;
+  }
   static query(trx?: Transaction) {
-    const store = getStore();
-    return M.query.bind(this)(trx || store.get(STORAGE.TRANSACTION_KEY));
+    return M.query.bind(this)(this.resolveTransaction(trx));
   }
   static relatedQuery(relationName: any, trx?: Transaction) {
-    const store = getStore();
     return M.relatedQuery.bind(this)(
       relationName,
-      trx || store.get(STORAGE.TRANSACTION_KEY),
+      this.resolveTransaction(trx),
     );
   }
   public $query(trx?: Transaction) {
-    const store = getStore();
-    return super.$query(trx || store.get(STORAGE.TRANSACTION_KEY));
+    return super.$query(Model.resolveTransaction(trx));
   }
   public $relatedQuery(relationName: any, trx?: Transaction) {
     const store = getStore();
-    return super.$relatedQuery(
-      relationName,
-      trx || store.get(STORAGE.TRANSACTION_KEY),
-    );
+    return super.$relatedQuery(relationName, Model.resolveTransaction(trx));
   }
   public save(): Promise<Model> {
     return this.$query().insert();

@@ -30,13 +30,13 @@ export class Body extends Validator {
     Object.assign(this, __body);
     this[ORIGINAL_BODY] = JSON.parse(JSON.stringify(__body));
   }
-  getOriginal() {
+  public getOriginal() {
     return this[ORIGINAL_BODY];
   }
-  get<T>(key: string, defaultValue?: T): T {
+  public get<T>(key: string, defaultValue?: T): T {
     return this.hasOwnProperty(key) ? this[key] : defaultValue;
   }
-  set<T>(key: string, value: T): void {
+  public set<T>(key: string, value: T): void {
     this.__body[key] = value;
     this[key] = value;
   }
@@ -46,10 +46,10 @@ export class Headers extends Validator {
     super();
     Object.assign(this, __headers);
   }
-  get<T>(key: string, defaultValue?: T): T {
+  public get<T>(key: string, defaultValue?: T): T {
     return this.hasOwnProperty(key) ? this[key] : defaultValue;
   }
-  set<T>(key: string, value: T): void {
+  public set<T>(key: string, value: T): void {
     this.__headers[key] = value;
     this[key] = value;
   }
@@ -59,10 +59,10 @@ export class Params extends Validator {
     super();
     Object.assign(this, __params);
   }
-  get<T>(key: string, defaultValue?: T): T {
+  public get<T>(key: string, defaultValue?: T): T {
     return this.hasOwnProperty(key) ? this[key] : defaultValue;
   }
-  set<T>(key: string, value: T): void {
+  public set<T>(key: string, value: T): void {
     this.__params[key] = value;
     this[key] = value;
   }
@@ -72,10 +72,10 @@ export class Query extends Validator {
     super();
     Object.assign(this, __query);
   }
-  get<T>(key: string, defaultValue?: T): T {
+  public get<T>(key: string, defaultValue?: T): T {
     return this.hasOwnProperty(key) ? this[key] : defaultValue;
   }
-  set<T>(key: string, value: T): void {
+  public set<T>(key: string, value: T): void {
     this.__query[key] = value;
     this[key] = value;
   }
