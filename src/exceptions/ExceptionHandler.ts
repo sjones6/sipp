@@ -39,10 +39,12 @@ export class ExceptionHandler extends HTTPResponder {
   /**
    * The exception was caught but handled by an exception handler
    */
+  // @ts-ignore
   reportHandledException(exception: BaseException): void | Promise<void> {}
 
   /**
    * The exception was caught and unhandled by any exception handler
    */
+  // @ts-ignore
   reportUnhandledException(exception: BaseException): void | Promise<void> {}
 }

@@ -12,7 +12,7 @@ export class ModelResolutionProvider extends ServiceProvider {
     register(
       [Controller, Middleware],
       Model,
-      async (resolve, Type: any): Promise<Model | undefined> => {
+      async (_, Type: any): Promise<Model | undefined> => {
         const req = getStore().get(STORAGE.REQ_KEY);
         const requestMethod = req.method;
         let model;

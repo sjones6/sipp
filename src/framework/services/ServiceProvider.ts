@@ -8,5 +8,6 @@ export class ServiceProvider {
    */
   public init(): void | Promise<void> {}
 
+  // @ts-ignore
   public register(register: IServiceRegistryFn): void {}
 }

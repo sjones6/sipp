@@ -49,7 +49,14 @@ describe('jsx-runtime', () => {
 
   it('should render a component without children', () => {
     expect(
-      jsx("input", { type: "checkbox", id: "foo", class: "bar", onchange: "baz()" })
-    ).equal('<input type="checkbox" id="foo" class="bar" onchange="baz()"></input>');
-  })
+      jsx('input', {
+        type: 'checkbox',
+        id: 'foo',
+        class: 'bar',
+        onchange: 'baz()',
+      }),
+    ).equal(
+      '<input type="checkbox" id="foo" class="bar" onchange="baz()"></input>',
+    );
+  });
 });

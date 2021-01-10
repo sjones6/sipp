@@ -199,7 +199,7 @@ export class Logger {
       this.addServiceLabel(),
       errors(),
       printf((info) => {
-        const { level, svc, message, ...rest } = info;
+        const { level, svc, message } = info;
         return `${level}${svc ? ` (${svc})` : ''}: ${message}`;
       }),
     );
