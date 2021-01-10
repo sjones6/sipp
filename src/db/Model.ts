@@ -1,4 +1,4 @@
-import { Model as M, Transaction, QueryBuilder } from 'objection';
+import { Model as M, Transaction, QueryBuilder, RelationExpression } from 'objection';
 import { STORAGE } from 'src/constants';
 import { getStore, hasStore } from '../utils/async-store';
 import {
@@ -8,6 +8,10 @@ import {
   ValidationErrorCollection,
 } from '../validation';
 
+type EagerRelationExpression = {
+  [key: string]: EagerRelationExpression | boolean
+}
+
 export class Model extends M implements IValidator {
   static modelName() {
     return this.name.replace('Model', '').toLowerCase();
@@ -15,7 +19,7 @@ export class Model extends M implements IValidator {
   static fillable(): string[] {
     return [];
   }
-  static eager(): string | false {
+  static eager(): EagerRelationExpression | string | false {
     return this.relationMappings
       ? Object.keys(this.relationMappings).join(' ')
       : false;
