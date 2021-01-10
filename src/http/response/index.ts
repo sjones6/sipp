@@ -4,7 +4,13 @@ import { PathDownload, StreamDownload, Download } from './download';
 import { View } from '../view';
 import { isInstanceOf } from '../../utils';
 
-export type ResponseBody = string | undefined | null | object | Array<any> | View;
+export type ResponseBody =
+  | string
+  | undefined
+  | null
+  | object
+  | Array<any>
+  | View;
 
 export type ResponseHeaders = {
   [key: string]: string;

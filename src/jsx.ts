@@ -26,7 +26,7 @@ function stringifyChildren(child: any): string {
 
 export const h = (tagName: Function | string, props?: object, ...children) => {
   if (typeof tagName === 'function') {
-    return tagName({ ...props, children });
+    return tagName(children);
   }
 
   let stringifiedChildren: string = children.map(stringifyChildren).join('');
@@ -48,4 +48,11 @@ export const h = (tagName: Function | string, props?: object, ...children) => {
   return `<${tagName}${
     stringifiedProps ? ' ' + stringifiedProps : ''
   }>${stringifiedChildren}</${tagName}>`;
+};
+
+export const Fragment = (children: any[]): string => {
+  if (!children) {
+    return '';
+  }
+  return children.map(stringifyChildren).join('');
 };

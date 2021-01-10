@@ -3,9 +3,13 @@ import { devExceptionView, productionExceptionView } from './exception';
 import { Logger } from '../logger';
 import { Request, Response } from 'express';
 import { HTTPResponder } from '../http/response/Responder';
-import { HTTPResponse, ResponseBody } from 'src/http';
+import { HTTPResponse, ResponseBody } from '../http';
 
-type ExceptionHandledResponse = ResponseBody | HTTPResponse<any> | false | Promise<ResponseBody | HTTPResponse<any> | false>;
+type ExceptionHandledResponse =
+  | ResponseBody
+  | HTTPResponse<any>
+  | false
+  | Promise<ResponseBody | HTTPResponse<any> | false>;
 
 export class ExceptionHandler extends HTTPResponder {
   constructor(

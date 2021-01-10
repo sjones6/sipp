@@ -1,15 +1,6 @@
 import { IServiceRegistryFn } from '../interfaces';
 import { ServiceProvider } from '../framework';
-import {
-  Body,
-  Headers,
-  Params,
-  Query,
-  Session,
-  Req,
-  Res,
-  Csrf
-} from '../http';
+import { Body, Headers, Params, Query, Session, Req, Res, Csrf } from '../http';
 import { getStore } from '../utils/async-store';
 import { STORAGE } from 'src/constants';
 import { Request } from 'express';
@@ -24,11 +15,7 @@ export class ParamResolutionProvider extends ServiceProvider {
       const req = this.withRequest();
       return new Req(req);
     });
-    register(
-      '*',
-      Body,
-      (resolve, Type) => new Type(this.withRequest().body),
-    );
+    register('*', Body, (resolve, Type) => new Type(this.withRequest().body));
     register(
       '*',
       Headers,
@@ -39,21 +26,9 @@ export class ParamResolutionProvider extends ServiceProvider {
       Params,
       (resolve, Type) => new Type(this.withRequest().params),
     );
-    register(
-      '*',
-      Query,
-      (resolve, Type) => new Type(this.withRequest().query),
-    );
-    register(
-      '*',
-      Session,
-      () => new Session(this.withRequest()),
-    );
-    register(
-      '*',
-      Csrf,
-      () => new Csrf(this.withRequest()),
-    );
+    register('*', Query, (resolve, Type) => new Type(this.withRequest().query));
+    register('*', Session, () => new Session(this.withRequest()));
+    register('*', Csrf, () => new Csrf(this.withRequest()));
   }
 
   private withRequest(): Request {

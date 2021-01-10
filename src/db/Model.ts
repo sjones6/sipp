@@ -48,10 +48,7 @@ export class Model extends M implements IValidator {
   }
   public $relatedQuery(relationName: any, trx?: Transaction) {
     const store = getStore();
-    return super.$relatedQuery(
-      relationName,
-      Model.resolveTransaction(trx),
-    );
+    return super.$relatedQuery(relationName, Model.resolveTransaction(trx));
   }
   public save(): Promise<Model> {
     return this.$query().insert();

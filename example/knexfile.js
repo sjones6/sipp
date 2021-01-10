@@ -7,11 +7,11 @@
  */
 
 try {
-  require.resolve('./dist/knexfile');
+  require.resolve('./dist/db/knexfile');
 } catch (err) {
   console.error(
     `The compiled knex config does not exist. Build first and then retry the command: npm run build.`,
   );
 }
 
-module.exports = require('./dist/knexfile');
+module.exports = require('./dist/db/knexfile');

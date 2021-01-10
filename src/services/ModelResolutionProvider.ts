@@ -26,11 +26,15 @@ export class ModelResolutionProvider extends ServiceProvider {
             const id =
               (req.params[name] ? req.params[name] : null) || req.params['id'];
             if (!id) {
-              throw new BadRequestException(`${Type.name} has no valid parameters; tried params.${name} and params.id`)
+              throw new BadRequestException(
+                `${Type.name} has no valid parameters; tried params.${name} and params.id`,
+              );
             }
             model = await Type.load().findById(id);
             if (!model) {
-              throw new NotFoundException(`${name} could not be located with id ${id}`);
+              throw new NotFoundException(
+                `${name} could not be located with id ${id}`,
+              );
             }
           case RequestMethod.GET:
           case RequestMethod.DELETE:

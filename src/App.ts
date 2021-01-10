@@ -323,7 +323,7 @@ export class App {
 
   /**
    * Get the express application instance that the Sipp application wraps.
-   * 
+   *
    * This is useful for some testing frameworks, or for dangerously
    * attaching your own middleware.
    */
@@ -517,28 +517,29 @@ export class App {
         );
       }
     } else {
-
       // the application level exception handler should do it
-      handled = await Promise.resolve(this.exceptionHandler.handle(
-        exception,
-        req,
-        res,
-      )).then((rawResponse) => {
+      handled = await Promise.resolve(
+        this.exceptionHandler.handle(exception, req, res),
+      ).then((rawResponse) => {
         if (rawResponse !== false) {
-          return toResponse(rawResponse).then(exceptionHandlerResponse => {
+          return toResponse(rawResponse).then((exceptionHandlerResponse) => {
             this.handleResponse(exceptionHandlerResponse, req, res);
             return true;
           });
         }
       });
       if (!handled) {
-        Promise.resolve(this.exceptionHandler.reportUnhandledException(exception)).catch((reportError) => {
+        Promise.resolve(
+          this.exceptionHandler.reportUnhandledException(exception),
+        ).catch((reportError) => {
           logger.error(
             `exception handler threw reporting unhandled exception, ${err.message}`,
           );
         });
       } else {
-        Promise.resolve(this.exceptionHandler.reportHandledException(exception)).catch((reportError) => {
+        Promise.resolve(
+          this.exceptionHandler.reportHandledException(exception),
+        ).catch((reportError) => {
           logger.error(
             `exception handler threw reporting handled exception, ${err.message}`,
           );
