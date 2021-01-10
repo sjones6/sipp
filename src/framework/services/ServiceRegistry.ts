@@ -2,7 +2,6 @@ import { IServiceProviderFactoryFn } from 'src/interfaces';
 import { compareClasses } from '../../utils';
 import { ServiceProvider } from './ServiceProvider';
 import { ParamNotResolveable } from '../../exceptions/ParamNotResolveable';
-import { TooManyRequestsException } from 'src/exceptions';
 
 export type RegisteredProvider = [any, IServiceProviderFactoryFn];
 
@@ -100,7 +99,7 @@ export class ServiceRegistry {
     return this.resolutionCache.get(ObjectClass);
   }
 
-  public registerFor<T>(
+  public registerFor(
     ProvidedClasses: '*' | any | any[],
     Type: any,
     fn: IServiceProviderFactoryFn,
@@ -111,12 +110,12 @@ export class ServiceRegistry {
     }
     Array.isArray(ProvidedClasses)
       ? ProvidedClasses.map((ProvidedClass) =>
-          this.addToRegistry<T>(ProvidedClass, [Type, fn]),
+          this.addToRegistry(ProvidedClass, [Type, fn]),
         )
-      : this.addToRegistry<T>(ProvidedClasses, [Type, fn]);
+      : this.addToRegistry(ProvidedClasses, [Type, fn]);
   }
 
-  private getIndirectProviders<T>(ObjectClass): RegisteredProvider[] {
+  private getIndirectProviders(ObjectClass): RegisteredProvider[] {
     const indirect = [];
     this.serviceMap.forEach((fns, ProvidedClass) => {
       if (
@@ -129,7 +128,7 @@ export class ServiceRegistry {
     return indirect;
   }
 
-  private addToRegistry<T>(
+  private addToRegistry(
     ProvidedClass,
     typeProvider: [any, IServiceProviderFactoryFn],
   ): void {

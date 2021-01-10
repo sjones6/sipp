@@ -30,7 +30,7 @@ export class HTTPResponse<ResponseType> {
       .setMimeType(req, res)
       .setBody(req, res);
   }
-  protected setBody(req: Request, res: Response): HTTPResponse<ResponseType> {
+  protected setBody(_, res: Response): HTTPResponse<ResponseType> {
     res.send(this.controllerResponse);
     return this;
   }
@@ -47,6 +47,7 @@ export class HTTPResponse<ResponseType> {
     return this;
   }
   protected setHeaders(
+    // @ts-ignore
     req: Request,
     res: Response,
   ): HTTPResponse<ResponseType> {
@@ -63,6 +64,7 @@ export class HTTPResponse<ResponseType> {
     return this;
   }
   protected setMimeType(
+    // @ts-ignore
     req: Request,
     res: Response,
   ): HTTPResponse<ResponseType> {
@@ -73,6 +75,7 @@ export class HTTPResponse<ResponseType> {
 
 export class HTTPRedirect extends HTTPResponse<string> {
   protected readonly status: number = 302;
+  // @ts-ignore
   public handle(req: Request, res: Response) {
     res.redirect(this.status, this.controllerResponse);
   }
@@ -108,6 +111,7 @@ export class DownloadResponse extends HTTPResponse<
     };
   }
   protected setBody(
+    // @ts-ignore
     req: Request,
     res: Response,
   ): HTTPResponse<StreamDownload | PathDownload> {

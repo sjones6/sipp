@@ -8,6 +8,10 @@ import {
   ValidationErrorCollection,
 } from '../validation';
 
+type EagerRelationExpression = {
+  [key: string]: EagerRelationExpression | boolean;
+};
+
 export class Model extends M implements IValidator {
   static modelName() {
     return this.name.replace('Model', '').toLowerCase();
@@ -15,7 +19,7 @@ export class Model extends M implements IValidator {
   static fillable(): string[] {
     return [];
   }
-  static eager(): string | false {
+  static eager(): EagerRelationExpression | string | false {
     return this.relationMappings
       ? Object.keys(this.relationMappings).join(' ')
       : false;
@@ -47,7 +51,6 @@ export class Model extends M implements IValidator {
     return super.$query(Model.resolveTransaction(trx));
   }
   public $relatedQuery(relationName: any, trx?: Transaction) {
-    const store = getStore();
     return super.$relatedQuery(relationName, Model.resolveTransaction(trx));
   }
   public save(): Promise<Model> {

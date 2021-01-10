@@ -152,7 +152,7 @@ export class App {
       }
 
       // todo: move csrf middleware
-      this.withMiddleware(test, csurf(csrfOpt), (req, res, next) => {
+      this.withMiddleware(test, csurf(csrfOpt), (req, _, next) => {
         if (req.body && req.body._csrf) {
           req.headers['csrf-token'] = req.body._csrf;
           delete req.body._csrf;
@@ -164,7 +164,7 @@ export class App {
     this.withMiddleware(
       // expose 2 bits of context to the request store:
       // the resolver and the request context
-      (req: Request, res: Response) => {
+      (req: Request) => {
         const store = getStore();
         store.set(STORAGE.REQ_KEY, req);
       },
@@ -295,7 +295,7 @@ export class App {
     this.registerControllers();
 
     // 400 handler after all of the controllers
-    this.app.use((req: Request, res: Response, next: NextFunction) => {
+    this.app.use((req: Request, _, next: NextFunction) => {
       next(new NotFoundException(`${req.method}: ${req.path} not found`));
     });
 
@@ -533,7 +533,7 @@ export class App {
           this.exceptionHandler.reportUnhandledException(exception),
         ).catch((reportError) => {
           logger.error(
-            `exception handler threw reporting unhandled exception, ${err.message}`,
+            `exception handler threw reporting unhandled exception, ${reportError.message}`,
           );
         });
       } else {
@@ -541,7 +541,7 @@ export class App {
           this.exceptionHandler.reportHandledException(exception),
         ).catch((reportError) => {
           logger.error(
-            `exception handler threw reporting handled exception, ${err.message}`,
+            `exception handler threw reporting handled exception, ${reportError.message}`,
           );
         });
       }

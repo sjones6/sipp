@@ -2,6 +2,7 @@ import { Fragment, h } from './jsx';
 
 interface PropsWithChildren {
   children?: any;
+  [key: string]: any;
 }
 
 export const jsx = (tagName, props: PropsWithChildren) => {
@@ -9,7 +10,11 @@ export const jsx = (tagName, props: PropsWithChildren) => {
   return h(
     tagName,
     otherProps,
-    ...(Array.isArray(children) ? children : [children]),
+    ...(Array.isArray(children)
+      ? children
+      : children != null
+      ? [children]
+      : []),
   );
 };
 

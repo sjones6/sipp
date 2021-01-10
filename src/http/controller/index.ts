@@ -25,8 +25,11 @@ export class Controller extends HTTPResponder {
    * Handle errors thrown when the controller is handling requests
    */
   public onException(
+    // @ts-ignore
     e: BaseException,
+    // @ts-ignore
     req: Request,
+    // @ts-ignore
     res: Response,
   ): false | ResponseBody | Promise<false | ResponseBody> {
     return false;

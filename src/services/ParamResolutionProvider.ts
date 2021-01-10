@@ -15,18 +15,10 @@ export class ParamResolutionProvider extends ServiceProvider {
       const req = this.withRequest();
       return new Req(req);
     });
-    register('*', Body, (resolve, Type) => new Type(this.withRequest().body));
-    register(
-      '*',
-      Headers,
-      (resolve, Type) => new Type(this.withRequest().headers),
-    );
-    register(
-      '*',
-      Params,
-      (resolve, Type) => new Type(this.withRequest().params),
-    );
-    register('*', Query, (resolve, Type) => new Type(this.withRequest().query));
+    register('*', Body, (_, Type) => new Type(this.withRequest().body));
+    register('*', Headers, (_, Type) => new Type(this.withRequest().headers));
+    register('*', Params, (_, Type) => new Type(this.withRequest().params));
+    register('*', Query, (_, Type) => new Type(this.withRequest().query));
     register('*', Session, () => new Session(this.withRequest()));
     register('*', Csrf, () => new Csrf(this.withRequest()));
   }

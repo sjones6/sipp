@@ -7,11 +7,7 @@ import {
 export const Apply = (
   ...middleware: Array<IMiddlewareFunc>
 ): MethodDecorator => {
-  return function (
-    target: object | Function,
-    key?: string | symbol,
-    descriptor?: TypedPropertyDescriptor<any>,
-  ): void {
+  return function (target: object | Function, key?: string | symbol): void {
     Reflect.defineMetadata(MIDDLEWARE_METADATA, middleware, target, key);
   };
 };
