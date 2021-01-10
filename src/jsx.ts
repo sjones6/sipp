@@ -42,7 +42,7 @@ export const h = (tagName: Function | string, props?: object, ...children) => {
         }
         return `${key}="${value}"`;
       })
-      .join('');
+      .join(' ');
   }
 
   return `<${tagName}${
