@@ -13,8 +13,8 @@ type ExceptionHandledResponse =
 
 export class ExceptionHandler extends HTTPResponder {
   constructor(
-    private readonly logger: Logger,
-    private readonly mode: 'production' | 'development' | string,
+    protected readonly logger: Logger,
+    protected readonly mode: 'production' | 'development' | string,
   ) {
     super();
   }
