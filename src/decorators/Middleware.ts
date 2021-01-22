@@ -3,7 +3,7 @@ import {
   CONTROLLER_MIDDLEWARE_METADATA,
   MIDDLEWARE_METADATA,
 } from '../constants';
-import { Middleware } from 'src/http';
+import { Middleware } from '../http';
 
 const normalizeMiddleware = (middleware: IMiddlewareFunc | Middleware): IMiddlewareFunc => {
   return middleware instanceof Middleware ? middleware.bind() : middleware;
