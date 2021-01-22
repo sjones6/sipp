@@ -6,5 +6,5 @@ export class Middleware extends HTTPResponder {
     return this.handle.bind(this);
   }
   // @ts-ignore
-  public async handle(...args: any[]): Promise<void | HTTPResponse> {}
+  public async handle(...args: any[]): Promise<void | HTTPResponse<any>> {}
 }

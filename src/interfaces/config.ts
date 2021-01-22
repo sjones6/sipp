@@ -55,7 +55,7 @@ export interface IAppConfig {
     csrf?: MiddlwareOptions<ICsrfOptions>;
     json?: MiddlwareOptions<{
       inflate?: boolean;
-      reviver: (key: string, value: any) => any;
+      reviver?: (key: string, value: any) => any;
       limit?: number | string;
       strict?: boolean;
       type?: 'string';
