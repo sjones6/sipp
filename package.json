@@ -24,7 +24,7 @@
     "build": "tsc",
     "prettier": "prettier --single-quote --trailing-comma all --write \"{example,src,test}/**/*.{js,ts,tsx}\"",
     "test": "mocha test/**/*.test.{ts,tsx} --require ts-node/register",
-    "test:watch": "mocha ./test/**/*.{ts,tsx} --require ts-node/register --watch --watch-files ./test/**/*.ts,./test/**/*.tsx",
+    "test:watch": "TS_NODE_CACHE=0 mocha ./test/**/*.{ts,tsx} --require ts-node/register  --watch --watch-files ./test/**/*.ts,./test/**/*.tsx",
     "pub": "./publish.sh"
   },
   "dependencies": {
