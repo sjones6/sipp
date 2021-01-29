@@ -1,3 +1,4 @@
+import { HTTPResponse } from '../response';
 import { HTTPResponder } from '../response/Responder';
 
 export class Middleware extends HTTPResponder {
@@ -5,5 +6,5 @@ export class Middleware extends HTTPResponder {
     return this.handle.bind(this);
   }
   // @ts-ignore
-  public async handle(...args: any[]): Promise<void> {}
+  public async handle(...args: any[]): Promise<void | HTTPResponse<any>> {}
 }
