@@ -55,7 +55,7 @@ jobs:
             ${{ runner.os }}-build-${{ env.cache-name }}-
             ${{ runner.os }}-build-
             ${{ runner.os }}-
-      - run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ./.npmrc
+      - run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ./.npmrc
       - run: npm ci --prefer-offline --no-audit
       - run: npm run build
       - run: npm run pub

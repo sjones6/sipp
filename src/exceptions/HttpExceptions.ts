@@ -13,7 +13,7 @@ export class PaymentRequiredException extends BaseException {
 }
 
 export class ForbiddenException extends BaseException {
-  public readonly code = 402;
+  public readonly code = 403;
 }
 
 export class NotFoundException extends BaseException {
